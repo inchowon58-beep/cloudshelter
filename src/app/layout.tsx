@@ -1,14 +1,15 @@
 import type { Metadata, Viewport } from "next";
 import { SITE } from "@/lib/site";
-import { imageUrl } from "@/lib/images";
+import { faqJsonLd, orgJsonLd } from "@/lib/faq-data";
+import Header from "./components/Header";
+import Footer from "./components/Footer";
+import FixedCTA from "./components/FixedCTA";
 import "./globals.css";
-
-const ogImage = imageUrl(1);
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.siteUrl),
   title: {
-    default: `${SITE.name} | 진짜 서귀포 감귤 산지직송`,
+    default: `${SITE.name} | 제주도감귤농장 서귀포 산지직송`,
     template: `%s | ${SITE.brand}`,
   },
   description: SITE.description,
@@ -22,20 +23,30 @@ export const metadata: Metadata = {
     locale: "ko_KR",
     url: SITE.siteUrl,
     siteName: SITE.name,
-    title: `${SITE.name} | 진짜 서귀포 감귤 산지직송`,
+    title: `${SITE.name} | 제주도감귤농장 서귀포 산지직송`,
     description: SITE.description,
-    images: [{ url: ogImage, width: 1200, height: 630, alt: SITE.name }],
+    images: [
+      {
+        url: SITE.logo,
+        width: 1200,
+        height: 630,
+        alt: `${SITE.name} 제주도감귤농장`,
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
-    title: `${SITE.name} | 진짜 서귀포 감귤 산지직송`,
+    title: `${SITE.name} | 제주도감귤농장 서귀포 산지직송`,
     description: SITE.description,
-    images: [ogImage],
+    images: [SITE.logo],
   },
   robots: {
     index: true,
     follow: true,
     googleBot: { index: true, follow: true, "max-image-preview": "large" },
+  },
+  other: {
+    "msapplication-TileColor": "#FF6B00",
   },
 };
 
@@ -45,24 +56,9 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-const jsonLd = {
-  "@context": "https://schema.org",
-  "@type": "LocalBusiness",
-  name: SITE.name,
-  description: SITE.description,
-  telephone: SITE.phone,
-  url: SITE.siteUrl,
-  image: ogImage,
-  address: {
-    "@type": "PostalAddress",
-    addressLocality: "서귀포시",
-    addressRegion: "제주특별자치도",
-    addressCountry: "KR",
-  },
-  areaServed: "KR",
-};
-
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const org = orgJsonLd();
+  const faq = faqJsonLd();
   return (
     <html lang="ko">
       <head>
@@ -72,12 +68,33 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
           href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
         />
+        <link
+          rel="alternate"
+          type="application/rss+xml"
+          title={`${SITE.name} RSS`}
+          href="/rss.xml"
+        />
+        <link
+          rel="alternate"
+          type="application/rss+xml"
+          title={`${SITE.name} Feed`}
+          href="/feed"
+        />
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(org) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faq) }}
         />
       </head>
-      <body>{children}</body>
+      <body>
+        <Header />
+        <main>{children}</main>
+        <Footer />
+        <FixedCTA />
+      </body>
     </html>
   );
 }

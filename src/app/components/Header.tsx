@@ -8,7 +8,7 @@ const NAV = [
   { href: "#problem", label: "박스갈이 주의" },
   { href: "#philosophy", label: "농장 철학" },
   { href: "#products", label: "상품" },
-  { href: "#reviews", label: "후기" },
+  { href: "/guide", label: "안내글" },
   { href: "#order", label: "주문" },
 ];
 

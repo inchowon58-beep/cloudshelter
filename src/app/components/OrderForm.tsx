@@ -25,32 +25,28 @@ const initial: FormState = {
 export default function OrderForm() {
   const [form, setForm] = useState<FormState>(initial);
   const [done, setDone] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
-  function onSubmit(e: FormEvent) {
+  async function onSubmit(e: FormEvent) {
     e.preventDefault();
     if (!form.name.trim() || !form.phone.trim() || !form.address.trim()) return;
-
-    const productLabel =
-      PRODUCTS.find((p) => p.id === form.product)?.name ?? form.product;
-    const message = [
-      `[뽕순이네 감귤 주문]`,
-      `이름: ${form.name}`,
-      `연락처: ${form.phone}`,
-      `주소: ${form.address}`,
-      `상품: ${productLabel}`,
-      `수량: ${form.quantity}`,
-      form.memo ? `메모: ${form.memo}` : "",
-    ]
-      .filter(Boolean)
-      .join("\n");
-
+    setSubmitting(true);
+    setError("");
     try {
-      void navigator.clipboard?.writeText(message);
-    } catch {
-      /* clipboard optional */
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "주문 접수에 실패했습니다.");
+      setDone(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "주문 접수에 실패했습니다.");
+    } finally {
+      setSubmitting(false);
     }
-
-    setDone(true);
   }
 
   if (done) {
@@ -59,11 +55,11 @@ export default function OrderForm() {
         <div className="container">
           <div className="mx-auto max-w-lg rounded-3xl border border-[var(--line)] bg-white p-8 text-center shadow-[0_16px_40px_rgba(15,23,42,0.06)]">
             <CheckCircle2 className="mx-auto text-[var(--green)]" size={48} />
-            <h2 className="mt-4 text-2xl font-extrabold text-[var(--navy)]">주문 신청이 준비되었습니다</h2>
+            <h2 className="mt-4 text-2xl font-extrabold text-[var(--navy)]">주문이 접수되었습니다</h2>
             <p className="mt-3 text-[var(--muted)]">
-              작성하신 주문 내용이 클립보드에 복사되었습니다.
+              관리자 페이지에 주문이 저장되었습니다.
               <br />
-              아래 번호로 전화 주시면 바로 확인 후 안내드립니다.
+              농장에서 확인 후 빠르게 연락드리겠습니다.
             </p>
             <a href={SITE.phoneTel} className="btn-primary mt-6 inline-flex">
               <Phone size={18} />
@@ -179,9 +175,11 @@ export default function OrderForm() {
             />
           </div>
 
-          <button type="submit" className="btn-primary mt-2 w-full">
+          {error && <p className="mb-3 text-sm text-red-700">{error}</p>}
+
+          <button type="submit" className="btn-primary mt-2 w-full" disabled={submitting}>
             <Send size={18} />
-            주문 신청하기
+            {submitting ? "접수 중…" : "주문 신청하기"}
           </button>
 
           <p className="mt-4 text-center text-xs text-[var(--muted)]">
