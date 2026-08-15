@@ -6,25 +6,34 @@
   <title>제주도감귤농장 웹문서 생성기</title>
   <style>
     :root {
-      --bg: #f6f1ea;
-      --card: #fffdf9;
-      --ink: #2b2118;
-      --muted: #7a6a5a;
-      --line: #e4d6c5;
-      --accent: #8a6a3e;
-      --accent2: #5c4332;
+      --bg: #fffaf5;
+      --card: #ffffff;
+      --ink: #0f172a;
+      --muted: #64748b;
+      --line: rgba(15, 23, 42, 0.1);
+      --accent: #ff6b00;
+      --accent2: #1b4d3e;
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
       font-family: "Segoe UI", "Malgun Gothic", sans-serif;
-      background: linear-gradient(160deg, #f8f3ec, #efe4d6 50%, #f6f1ea);
+      background: linear-gradient(160deg, #fffaf5, #f8fafc 50%, #eef2f6);
       color: var(--ink);
       min-height: 100vh;
     }
     .wrap { max-width: 1100px; margin: 0 auto; padding: 20px; }
+    .top {
+      display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start;
+      gap: 12px; margin-bottom: 16px;
+    }
     h1 { font-size: 1.35rem; margin: 0 0 4px; }
-    .sub { color: var(--muted); font-size: .9rem; margin-bottom: 16px; }
+    .sub { color: var(--muted); font-size: .9rem; margin: 0; }
+    .top-actions { display: flex; gap: 8px; align-items: center; }
+    .badge {
+      display: inline-block; padding: 6px 10px; border-radius: 999px;
+      background: #e8f2ee; color: var(--accent2); font-size: .78rem; font-weight: 700;
+    }
     .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
     .tab {
       border: 1px solid var(--line);
@@ -41,7 +50,7 @@
       border: 1px solid var(--line);
       border-radius: 16px;
       padding: 16px;
-      box-shadow: 0 8px 24px rgba(70,45,20,.06);
+      box-shadow: 0 8px 24px rgba(15,23,42,.05);
     }
     .panel.active { display: block; }
     .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -67,6 +76,7 @@
       cursor: pointer;
     }
     button.secondary { background: #fff; color: var(--accent2); border: 1px solid var(--line); }
+    button.ghost { background: #0f172a; color: #fff; }
     button:disabled { opacity: .5; cursor: wait; }
     .check { display: flex; align-items: center; gap: 8px; margin: 8px 0; font-size: .92rem; }
     .check input { width: auto; }
@@ -74,15 +84,15 @@
       margin-top: 12px;
       padding: 10px 12px;
       border-radius: 10px;
-      background: #f3ebe1;
-      color: var(--accent2);
+      background: #fff4eb;
+      color: #9a3412;
       font-size: .92rem;
     }
     .log {
       height: 280px;
       overflow: auto;
-      background: #1f1a16;
-      color: #f0e7db;
+      background: #0f172a;
+      color: #e2e8f0;
       border-radius: 12px;
       padding: 12px;
       font-family: Consolas, monospace;
@@ -103,8 +113,16 @@
 </head>
 <body>
   <div class="wrap">
-    <h1>제주도감귤농장 웹문서 생성기</h1>
-    <div class="sub">키워드×지역 조합 · Blob 웹반영</div>
+    <header class="top">
+      <div>
+        <h1>제주도감귤농장 웹문서 생성기</h1>
+        <p class="sub">키워드 전달 → SEO·AEO·OG 상세페이지 발행 · 이미지 3장 · Blob·IndexNow·네이버 등록</p>
+      </div>
+      <div class="top-actions">
+        <span class="badge">감귤판매 SEO</span>
+        <button type="button" class="ghost" id="btn_quit_top">프로그램 종료</button>
+      </div>
+    </header>
 
     <div class="tabs">
       <button class="tab active" data-tab="pub">키워드·발행</button>
@@ -116,11 +134,11 @@
     <section id="pub" class="panel active">
       <div class="grid2">
         <div>
-          <label>키워드 (한 줄에 하나)</label>
+          <label>키워드 (한 줄에 하나) — 예: 제주도감귤농장</label>
           <textarea id="keywords_text"></textarea>
         </div>
         <div>
-          <label>지역 (한 줄에 하나) → 부천강아지교배</label>
+          <label>지역 (한 줄에 하나) → 서울제주도감귤농장</label>
           <textarea id="regions_text"></textarea>
         </div>
       </div>
@@ -347,6 +365,7 @@
       try { await api("/api/quit", { method: "POST", body: "{}" }); } catch (_) {}
       window.close();
     };
+    $("btn_quit_top").onclick = $("btn_quit").onclick;
     $("btn_admin_unlock").onclick = async () => {
       try {
         const st = await api("/api/admin/unlock", {

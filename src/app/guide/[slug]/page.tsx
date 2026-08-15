@@ -37,13 +37,25 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       type: "article",
       locale: "ko_KR",
       siteName: SITE.name,
-      images: [{ url: ogImage, alt: galleryAlt(page.keyword, 1) }],
+      images: [
+        {
+          url: ogImage,
+          width: 1200,
+          height: 1200,
+          alt: galleryAlt(page.keyword, 1),
+        },
+      ],
     },
     twitter: {
       card: "summary_large_image",
       title: page.title,
       description: page.metaDescription,
       images: [ogImage],
+    },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: { index: true, follow: true, "max-image-preview": "large" },
     },
   };
 }
@@ -55,6 +67,7 @@ export default async function GuidePage({ params }: Props) {
   if (!page) notFound();
 
   const pageUrl = `${SITE.siteUrl.replace(/\/$/, "")}/guide/${encodeURIComponent(page.slug)}`;
+  const images = (page.images || []).slice(0, 3);
   const breadcrumb = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -88,13 +101,13 @@ export default async function GuidePage({ params }: Props) {
       name: SITE.name,
       logo: { "@type": "ImageObject", url: SITE.logo },
     },
-    image: page.images,
+    image: images.length ? images : [SITE.logo],
     mainEntityOfPage: pageUrl,
-    about: "제주도감귤농장",
+    about: ["제주도감귤농장", "서귀포감귤", page.keyword],
   };
 
   return (
-    <article className="pb-8 pt-8">
+    <article className="pb-8 pt-8 md:pt-10">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumb) }}
@@ -108,9 +121,9 @@ export default async function GuidePage({ params }: Props) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd(page.faqs)) }}
       />
 
-      <div className="bg-[linear-gradient(180deg,#0f172a_0%,#1b4d3e_40%,#f8fafc_40%)] px-4 pb-10 pt-8">
+      <div className="bg-[linear-gradient(180deg,#0f172a_0%,#1b4d3e_42%,#f8fafc_42%)] px-4 pb-10 pt-6">
         <div className="container">
-          <GuideHeroThumb page={page} imageSrc={page.images[0] || SITE.logo} />
+          <GuideHeroThumb page={page} imageSrc={images[0] || SITE.logo} />
         </div>
       </div>
 
@@ -127,7 +140,12 @@ export default async function GuidePage({ params }: Props) {
           <span>{page.keyword}</span>
         </nav>
 
-        <p className="mb-8 text-lg text-[var(--navy)]">{page.h1}</p>
+        <p className="mb-2 text-sm font-bold tracking-wide text-[var(--orange)]">
+          {page.heroSubtitle}
+        </p>
+        <p className="mb-8 text-lg font-semibold leading-snug text-[var(--navy)] md:text-xl">
+          {page.h1}
+        </p>
 
         {page.sections.map((sec, si) => (
           <section key={sec.h2} className="mb-12">
@@ -138,15 +156,16 @@ export default async function GuidePage({ params }: Props) {
                 {p}
               </p>
             ))}
-            {page.images[si + 1] && (
-              <figure className="my-6 overflow-hidden rounded-2xl">
+            {/* 본문 이미지 2장만 — 섹션1·2 뒤에 배치 (가독성) */}
+            {si < 2 && images[si + 1] && (
+              <figure className="my-7 overflow-hidden rounded-2xl border border-[var(--line)]">
                 <Image
-                  src={page.images[si + 1]}
+                  src={images[si + 1]}
                   alt={galleryAlt(page.keyword, si + 2)}
                   width={1000}
-                  height={700}
+                  height={640}
                   unoptimized
-                  className="w-full object-cover"
+                  className="aspect-[16/10] w-full object-cover"
                   loading="lazy"
                 />
               </figure>
@@ -174,9 +193,17 @@ export default async function GuidePage({ params }: Props) {
 
         <aside className="rounded-2xl border border-[var(--orange)] bg-[var(--orange-soft)] p-6 text-center">
           <p className="text-xl font-extrabold text-[var(--navy)] md:text-2xl">{page.ctaText}</p>
-          <a href={SITE.phoneTel} className="btn-primary mt-4 inline-flex">
-            {CTA_LABEL} {SITE.phone}
-          </a>
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+            <a href={SITE.phoneTel} className="btn-primary inline-flex">
+              {CTA_LABEL} {SITE.phone}
+            </a>
+            <a
+              href="/#order"
+              className="inline-flex rounded-xl border border-[var(--green)] px-4 py-3 text-sm font-bold text-[var(--green)]"
+            >
+              간편 주문 신청
+            </a>
+          </div>
         </aside>
       </div>
     </article>

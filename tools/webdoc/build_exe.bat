@@ -3,14 +3,13 @@ chcp 65001 >nul
 cd /d "%~dp0"
 
 echo [1/2] 의존성 설치...
-python -m pip install -q -r requirements.txt
+python -m pip install -q -r requirements.txt pyinstaller
 if errorlevel 1 (
   echo pip 설치 실패
   exit /b 1
 )
 
-echo [2/2] Chrome 앱 UI 실행파일 빌드...
-REM --windowed: 검은 콘솔 없음. 스케줄은 UI 종료 시에도 백엔드 유지 후 UI 재실행.
+echo [2/2] 웹앱 실행파일 빌드... (--windowed: 검은 콘솔 없음)
 python -m PyInstaller --noconfirm --clean --windowed --name "제주도감귤농장웹문서생성기" ^
   --add-data "indexnow.py;." ^
   --add-data "blob_sync.py;." ^
@@ -48,5 +47,6 @@ if errorlevel 1 (
 
 echo.
 echo 완료: dist\제주도감귤농장웹문서생성기\제주도감귤농장웹문서생성기.exe
-echo 실행 시 Chrome 앱 GUI만 열립니다 (콘솔 없음).
+echo 실행 시 웹앱 GUI만 열립니다 (검은 콘솔 없음).
+echo 완전 종료는 화면의 [프로그램 종료] 버튼.
 exit /b 0

@@ -25,7 +25,7 @@ def default_settings() -> Dict[str, Any]:
     return {
         "site_url": DEFAULT_SITE_URL,
         "out_dir": os.path.join(webdoc_dir(), "output"),
-        "keywords_text": "제주도감귤농장\n서귀포감귤\n제주감귤\n감귤직송\n산지직송감귤",
+        "keywords_text": "제주도감귤농장\n서귀포감귤\n제주감귤판매\n감귤직송\n산지직송감귤\n제주밀감",
         "regions_text": "서울\n부산\n대구\n인천\n광주\n대전\n울산\n수원\n성남\n고양",
         "total_target": "500",
         "daily_limit": "30",

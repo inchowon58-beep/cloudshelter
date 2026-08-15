@@ -101,7 +101,7 @@ export function generateTemplateContent(keyword: string, pageIndex = 1): SeoPage
     heroBar: "박스갈이 없는 진짜 서귀포 감귤",
     sections,
     faqs,
-    images: pickImages(6, seed),
+    images: pickImages(3, seed),
     ctaText: `감귤 주문 문의 ${phone} — ${brand}`,
     createdAt: now,
     updatedAt: now,

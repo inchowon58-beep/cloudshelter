@@ -90,7 +90,7 @@ export function assembleSeoPage(
     heroBar: "박스갈이 없는 진짜 서귀포 감귤",
     sections: partial.sections,
     faqs: partial.faqs,
-    images: pickImages(6, Date.now() % 100000),
+    images: pickImages(3, Date.now() % 100000),
     ctaText: partial.ctaText,
     createdAt: now,
     updatedAt: now,

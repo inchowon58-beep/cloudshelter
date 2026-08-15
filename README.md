@@ -24,10 +24,17 @@ npm run dev
 
 ```bash
 cd tools/webdoc
-run.bat
+# 개발 실행 (콘솔 없음)
+제주도감귤농장_웹문서_실행.bat
+
+# 실행파일 빌드 (--windowed, 검은 콘솔 없음)
+build_exe.bat
 ```
 
-키워드·지역 조합으로 `/guide` SEO 글을 대량 생성합니다.
+빌드 결과: `tools/webdoc/dist/제주도감귤농장웹문서생성기/제주도감귤농장웹문서생성기.exe`
+
+키워드 입력 시 강아지교배와 동일한 SeoPage 형식(title/meta/OG/Twitter/FAQ/히어로)으로
+제주감귤 판매용 `/guide` 상세페이지를 생성합니다. 이미지는 3장(히어로+본문2).
 
 ## 빌드
 
