@@ -13,7 +13,12 @@ import { listPageSummaries } from "@/lib/seo-pages";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const pages = await listPageSummaries();
+  let pages: Awaited<ReturnType<typeof listPageSummaries>> = [];
+  try {
+    pages = await listPageSummaries();
+  } catch {
+    pages = [];
+  }
 
   return (
     <>

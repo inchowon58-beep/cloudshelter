@@ -65,7 +65,11 @@ function blobPutOpts() {
 }
 
 function ensureDirs() {
-  if (!fs.existsSync(ORDERS_DIR)) fs.mkdirSync(ORDERS_DIR, { recursive: true });
+  try {
+    if (!fs.existsSync(ORDERS_DIR)) fs.mkdirSync(ORDERS_DIR, { recursive: true });
+  } catch {
+    /* Vercel 읽기 전용 FS */
+  }
 }
 
 function blobOrderPath(id: string): string {
@@ -118,11 +122,10 @@ async function writeBlobText(pathname: string, content: string): Promise<void> {
 }
 
 function readIndexFs(): OrderIndex {
-  ensureDirs();
-  if (!fs.existsSync(INDEX_PATH)) {
-    return { ids: [], updatedAt: new Date().toISOString() };
-  }
   try {
+    if (!fs.existsSync(INDEX_PATH)) {
+      return { ids: [], updatedAt: new Date().toISOString() };
+    }
     return JSON.parse(fs.readFileSync(INDEX_PATH, "utf-8")) as OrderIndex;
   } catch {
     return { ids: [], updatedAt: new Date().toISOString() };
@@ -135,9 +138,9 @@ function writeIndexFs(index: OrderIndex) {
 }
 
 function readOrderFs(id: string): Order | null {
-  const file = path.join(ORDERS_DIR, `${id}.json`);
-  if (!fs.existsSync(file)) return null;
   try {
+    const file = path.join(ORDERS_DIR, `${id}.json`);
+    if (!fs.existsSync(file)) return null;
     return JSON.parse(fs.readFileSync(file, "utf-8")) as Order;
   } catch {
     return null;
@@ -145,7 +148,7 @@ function readOrderFs(id: string): Order | null {
 }
 
 async function readIndex(): Promise<OrderIndex> {
-  if (resolveBlobToken() || isVercelRuntime()) {
+  if (resolveBlobToken()) {
     const raw = await readBlobText(`${BLOB_PREFIX}/index.json`);
     if (raw) {
       try {
@@ -179,7 +182,7 @@ async function writeIndex(index: OrderIndex): Promise<void> {
 }
 
 export async function readOrder(id: string): Promise<Order | null> {
-  if (resolveBlobToken() || isVercelRuntime()) {
+  if (resolveBlobToken()) {
     const raw = await readBlobText(blobOrderPath(id));
     if (raw) {
       try {

@@ -29,7 +29,7 @@ export const SITE = {
   location: "제주특별자치도 서귀포시",
   address: "제주특별자치도 서귀포시",
   domain: "jejumilgam",
-  siteUrl: process.env.NEXT_PUBLIC_SITE_URL || "https://jejumilgam.com",
+  siteUrl: process.env.NEXT_PUBLIC_SITE_URL || "https://jejumilgam.vercel.app",
 } as const;
 
 export const CTA_LABEL = "진짜 서귀포 감귤 주문하기";

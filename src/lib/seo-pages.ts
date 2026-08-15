@@ -114,7 +114,11 @@ function blobPutOpts() {
 }
 
 function ensureDirs() {
-  if (!fs.existsSync(PAGES_DIR)) fs.mkdirSync(PAGES_DIR, { recursive: true });
+  try {
+    if (!fs.existsSync(PAGES_DIR)) fs.mkdirSync(PAGES_DIR, { recursive: true });
+  } catch {
+    /* Vercel 등 읽기 전용 FS — 쓰기 시에만 실패 처리 */
+  }
 }
 
 function pageToSummary(page: Pick<
@@ -219,11 +223,10 @@ async function writeBlobText(pathname: string, content: string): Promise<void> {
 }
 
 function readIndexFs(): SeoIndex {
-  ensureDirs();
-  if (!fs.existsSync(INDEX_PATH)) {
-    return { slugs: [], entries: [], updatedAt: new Date().toISOString() };
-  }
   try {
+    if (!fs.existsSync(INDEX_PATH)) {
+      return { slugs: [], entries: [], updatedAt: new Date().toISOString() };
+    }
     return normalizeIndex(JSON.parse(fs.readFileSync(INDEX_PATH, "utf-8")) as SeoIndex);
   } catch {
     return { slugs: [], entries: [], updatedAt: new Date().toISOString() };
@@ -256,7 +259,8 @@ function readPageFs(slug: string): SeoPage | null {
 }
 
 export async function readIndex(): Promise<SeoIndex> {
-  if (resolveBlobToken() || isVercelRuntime()) {
+  // Blob은 토큰이 있을 때만 시도 (Vercel에서 토큰 없이 get 호출 시 예외)
+  if (resolveBlobToken()) {
     const blobRaw = await readBlobText(`${BLOB_PREFIX}/index.json`);
     if (blobRaw) {
       try {
@@ -313,7 +317,7 @@ export async function readPage(slug: string): Promise<SeoPage | null> {
   } catch {
     /* ignore */
   }
-  if (resolveBlobToken() || isVercelRuntime()) {
+  if (resolveBlobToken()) {
     for (const key of candidates) {
       // 1) ASCII 해시 키 (신규)
       const hashed = await readBlobText(blobPagePathname(key));
@@ -340,24 +344,33 @@ export async function readPage(slug: string): Promise<SeoPage | null> {
 
 /** 목록·홈·사이트맵용 — index.json 1회만 읽음 (전체 글 JSON 미조회) */
 export async function listPageSummaries(): Promise<SeoPageSummary[]> {
-  const index = await readIndex();
-  if (index.entries && index.entries.length > 0) {
-    return [...index.entries].sort((a, b) =>
-      (a.createdAt || "") < (b.createdAt || "") ? 1 : -1
-    );
+  try {
+    const index = await readIndex();
+    if (index.entries && index.entries.length > 0) {
+      return [...index.entries].sort((a, b) =>
+        (a.createdAt || "") < (b.createdAt || "") ? 1 : -1
+      );
+    }
+    if (index.slugs.length > 0) {
+      return index.slugs.map((s) => stubSummary(s, index.updatedAt));
+    }
+    try {
+      if (fs.existsSync(PAGES_DIR)) {
+        const files = fs.readdirSync(PAGES_DIR).filter((f) => f.endsWith(".json"));
+        return files
+          .map((f) => readPageFs(f.replace(/\.json$/, "")))
+          .filter((p): p is SeoPage => !!p)
+          .map(pageToSummary)
+          .sort((a, b) => ((a.createdAt || "") < (b.createdAt || "") ? 1 : -1));
+      }
+    } catch {
+      /* ignore FS errors on serverless */
+    }
+    return [];
+  } catch (e) {
+    console.error("[seo-pages] listPageSummaries failed", e);
+    return [];
   }
-  if (index.slugs.length > 0) {
-    return index.slugs.map((s) => stubSummary(s, index.updatedAt));
-  }
-  if (fs.existsSync(PAGES_DIR)) {
-    const files = fs.readdirSync(PAGES_DIR).filter((f) => f.endsWith(".json"));
-    return files
-      .map((f) => readPageFs(f.replace(/\.json$/, "")))
-      .filter((p): p is SeoPage => !!p)
-      .map(pageToSummary)
-      .sort((a, b) => ((a.createdAt || "") < (b.createdAt || "") ? 1 : -1));
-  }
-  return [];
 }
 
 /** 전체 본문 필요 시(RSS 등). 비용·지연 큼 — 가급적 listPageSummaries 사용 */
