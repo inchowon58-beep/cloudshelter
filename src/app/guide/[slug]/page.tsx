@@ -197,12 +197,12 @@ export default async function GuidePage({ params }: Props) {
             <a href={SITE.phoneTel} className="btn-primary inline-flex">
               {CTA_LABEL} {SITE.phone}
             </a>
-            <a
+            <Link
               href="/#order"
               className="inline-flex rounded-xl border border-[var(--green)] px-4 py-3 text-sm font-bold text-[var(--green)]"
             >
               간편 주문 신청
-            </a>
+            </Link>
           </div>
         </aside>
       </div>

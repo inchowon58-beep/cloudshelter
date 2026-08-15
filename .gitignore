@@ -6,6 +6,7 @@ out
 *.log
 .DS_Store
 *.tsbuildinfo
+.vercel
 tools/webdoc/__pycache__/
 tools/webdoc/output/
 tools/webdoc/settings.json
@@ -13,5 +14,9 @@ tools/webdoc/queue_state.json
 tools/webdoc/naver_submit_log.json
 tools/webdoc/dist/
 tools/webdoc/build/
+tools/webdoc/.chrome-app-profile/
+tools/webdoc/**/.chrome-app-profile/
+tools/webdoc/*.spec
 public/order-data/orders/
 public/seo-data/pages/
+.vercel
