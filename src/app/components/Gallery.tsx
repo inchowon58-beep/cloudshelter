@@ -1,36 +1,34 @@
 import Image from "next/image";
-import { allImageUrls, galleryAlt } from "@/lib/images";
+import { SITE } from "@/lib/site";
+import { imageUrl, galleryAlt } from "@/lib/images";
+
+const INDICES = [2, 4, 6, 9, 11, 14, 18, 22];
 
 export default function Gallery() {
-  const images = allImageUrls();
-
   return (
-    <section id="gallery" className="section pt-0">
+    <section id="gallery" className="section">
       <div className="container">
         <div className="mx-auto max-w-2xl text-center">
-          <p className="text-sm font-bold tracking-wide text-[var(--green)]">FARM GALLERY</p>
-          <h2 className="mt-2 text-2xl font-extrabold text-[var(--navy)] md:text-3xl">
-            농장 현장 · 수확 모습
+          <p className="text-sm font-bold tracking-wide text-[var(--sky)]">SHELTER LIFE</p>
+          <h2 className="mt-2 text-3xl font-extrabold text-[var(--navy)] md:text-4xl">
+            보호소의 하루
           </h2>
+          <p className="mt-3 text-[var(--muted)]">
+            {SITE.brand}가 지키는 보호 공간의 분위기입니다.
+          </p>
         </div>
-
-        <div className="mt-8 grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-3">
-          {images.slice(0, 8).map((src, i) => (
-            <figure
-              key={src}
-              className={`relative overflow-hidden rounded-xl ${
-                i === 0 || i === 5 ? "col-span-2 aspect-[2/1] md:aspect-[2/1]" : "aspect-square"
-              }`}
-            >
+        <div className="mt-10 grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+          {INDICES.map((i) => (
+            <div key={i} className="rounded-media relative aspect-square overflow-hidden shadow-sm">
               <Image
-                src={src}
-                alt={galleryAlt(i + 1)}
+                src={imageUrl(i)}
+                alt={galleryAlt(i)}
                 fill
                 unoptimized
-                className="object-cover transition duration-500 hover:scale-105"
-                sizes="(max-width:768px) 50vw, 25vw"
+                className="object-cover"
+                sizes="(max-width: 768px) 50vw, 25vw"
               />
-            </figure>
+            </div>
           ))}
         </div>
       </div>

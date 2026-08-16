@@ -10,7 +10,7 @@ if errorlevel 1 (
 )
 
 echo [2/2] 웹앱 실행파일 빌드... (--windowed: 검은 콘솔 없음)
-python -m PyInstaller --noconfirm --clean --windowed --name "제주도감귤농장웹문서생성기" ^
+python -m PyInstaller --noconfirm --clean --windowed --name "구름이네웹문서생성기" ^
   --add-data "indexnow.py;." ^
   --add-data "blob_sync.py;." ^
   --add-data "project_paths.py;." ^
@@ -46,7 +46,7 @@ if errorlevel 1 (
 )
 
 echo.
-echo 완료: dist\제주도감귤농장웹문서생성기\제주도감귤농장웹문서생성기.exe
+echo 완료: dist\구름이네웹문서생성기\구름이네웹문서생성기.exe
 echo 실행 시 웹앱 GUI만 열립니다 (검은 콘솔 없음).
 echo 완전 종료는 화면의 [프로그램 종료] 버튼.
 exit /b 0

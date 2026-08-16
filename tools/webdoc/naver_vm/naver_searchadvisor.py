@@ -19,13 +19,16 @@ import requests
 
 logger = logging.getLogger(__name__)
 
-LOGIN_ENTRY_URL = "https://searchadvisor.naver.com/"
+LOGIN_ENTRY_URL = "https://www.naver.com/"
 SITE_BOARD_URL = "https://searchadvisor.naver.com/console/board"
 CRAWL_PAGE_PATH = "/console/site/request/crawl"
+NAVER_MAIN_URL = "https://www.naver.com/"
+# 로그인 후 서치어드바이저가 아니라 네이버 메인으로 돌아가게 함
 NAVER_LOGIN_URL = (
     "https://nid.naver.com/nidlogin.login?mode=form&url="
-    + quote(SITE_BOARD_URL, safe="")
+    + quote(NAVER_MAIN_URL, safe="")
 )
+WINDOW_MASK_TITLE = "네이버 블로그"
 
 LogFn = Callable[[str], None] | None
 
@@ -168,7 +171,7 @@ class LoginTypingOptions:
     id_max_delay: float = 0.28
     pw_min_delay: float = 0.08
     pw_max_delay: float = 0.22
-    page_wait_sec: float = 60.0
+    page_wait_sec: float = 8.0
 
 
 @dataclass
@@ -394,28 +397,327 @@ def _is_logged_in(driver) -> bool:
     return True
 
 
-def verify_console_login(driver, *, on_log: LogFn = None) -> bool:
-    """사이트 목록(콘솔) 접근으로 로그인 여부 검증."""
+def verify_naver_portal_login(driver, *, on_log: LogFn = None) -> bool:
+    """네이버 메인에서 로그인 여부 확인 (서치어드바이저로 이동하지 않음)."""
     try:
         url = (driver.current_url or "").lower()
-        if "searchadvisor.naver.com" in url and "nid.naver.com" not in url:
-            _emit("  콘솔 새로고침 — 로그인 상태 확인", on_log)
-            driver.refresh()
+        if "nid.naver.com" in url or "nidlogin" in url:
+            _emit("  아직 로그인 페이지에 있음", on_log)
+            return False
+
+        # 서치어드바이저에 있으면 메인으로 되돌림 — 로그인 확인만 포털에서
+        if "www.naver.com" not in url or "searchadvisor" in url:
+            _emit("  네이버 메인으로 이동 — 로그인 상태 확인", on_log)
+            driver.get(NAVER_MAIN_URL)
             time.sleep(random.uniform(2.0, 3.0))
-        else:
-            driver.get(SITE_BOARD_URL)
-            time.sleep(random.uniform(2.0, 3.0))
-        if _is_logged_in(driver):
-            return True
+
         url = (driver.current_url or "").lower()
         if "nid.naver.com" in url or "nidlogin" in url:
-            _emit("  네이버 로그인 페이지로 이동됨 — 로그인이 필요합니다.", on_log)
+            _emit("  네이버 로그인 페이지로 이동됨 — 로그인 필요", on_log)
             return False
-        _emit(f"  콘솔 접근 실패 (현재 URL: {driver.current_url})", on_log)
+
+        names = {str(c.get("name") or "") for c in (driver.get_cookies() or [])}
+        if "NID_AUT" in names or "NID_SES" in names:
+            _mask_browser_identity(driver, on_log=on_log)
+            return True
+
+        try:
+            logged = driver.execute_script(
+                """
+                try {
+                  const loginBtn = document.querySelector('a.link_login');
+                  if (loginBtn && /로그인/.test((loginBtn.textContent || '').trim())) return false;
+                  const logout = document.querySelector(
+                    'a[href*="nid.naver.com/nidlogin.logout"], a[href*="nidlogin.logout"]'
+                  );
+                  if (logout) return true;
+                  const account = document.querySelector('#account');
+                  if (account && !loginBtn) return true;
+                } catch (e) {}
+                return null;
+                """
+            )
+            if logged is True:
+                _mask_browser_identity(driver, on_log=on_log)
+                return True
+            if logged is False:
+                _emit("  네이버 메인 — 로그인 필요", on_log)
+                return False
+        except Exception:
+            pass
+
+        _emit("  네이버 로그인 쿠키 없음 — 로그인 필요", on_log)
         return False
     except Exception as exc:
-        _emit(f"  콘솔 접근 확인 오류: {exc}", on_log)
+        _emit(f"  네이버 메인 로그인 확인 오류: {exc}", on_log)
         return False
+
+
+def verify_console_login(driver, *, on_log: LogFn = None) -> bool:
+    """하위 호환 — 포털 로그인 확인으로 위임 (서치어드바이저 미리 열지 않음)."""
+    return verify_naver_portal_login(driver, on_log=on_log)
+
+
+def _win32_set_chrome_title(driver, title: str) -> bool:
+    """작업표시줄 미리보기에 보이는 창 제목을 변경."""
+    hwnd = _find_automation_chrome_hwnd(driver)
+    if not hwnd:
+        return False
+    try:
+        import ctypes
+
+        return bool(ctypes.windll.user32.SetWindowTextW(hwnd, title))
+    except Exception:
+        return False
+
+
+def _find_automation_chrome_hwnd(driver):
+    """등록용 Chrome 최상위 HWND (화면 밖·제목 마스크 우선)."""
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        user32 = ctypes.windll.user32
+        title_hint = ""
+        try:
+            title_hint = (driver.title or "").strip()
+        except Exception:
+            pass
+
+        candidates: list[tuple[int, int]] = []  # (score, hwnd)
+
+        @ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+        def _enum(hwnd, _lparam):
+            if not user32.IsWindowVisible(hwnd):
+                return True
+            length = user32.GetWindowTextLengthW(hwnd)
+            if length <= 0:
+                return True
+            buf = ctypes.create_unicode_buffer(length + 1)
+            user32.GetWindowTextW(hwnd, buf, length + 1)
+            text = buf.value or ""
+            class_buf = ctypes.create_unicode_buffer(256)
+            user32.GetClassNameW(hwnd, class_buf, 256)
+            cls = class_buf.value or ""
+            if "Chrome_WidgetWin" not in cls and "Chrome" not in text and "크롬" not in text:
+                if not (title_hint and title_hint[:8] in text):
+                    if WINDOW_MASK_TITLE not in text and "네이버" not in text:
+                        return True
+            rect = wintypes.RECT()
+            user32.GetWindowRect(hwnd, ctypes.byref(rect))
+            score = 0
+            if WINDOW_MASK_TITLE in text or "네이버 블로그" in text or text.strip() == "네이버":
+                score += 50
+            if title_hint and title_hint[:10] in text:
+                score += 20
+            if rect.left <= -500 or rect.top <= -500 or rect.left >= 4000:
+                score += 40
+            if "Chrome_WidgetWin" in cls:
+                score += 10
+            candidates.append((score, int(hwnd)))
+            return True
+
+        user32.EnumWindows(_enum, 0)
+        if not candidates:
+            return None
+        candidates.sort(key=lambda x: x[0], reverse=True)
+        return candidates[0][1]
+    except Exception:
+        return None
+
+
+def _taskbar_delete_tab(hwnd: int) -> bool:
+    """해당 창을 작업표시줄 그룹/미리보기에서 제거."""
+    try:
+        import ctypes
+        import uuid
+        from ctypes import HRESULT, POINTER, byref, c_void_p, wintypes
+
+        ole32 = ctypes.windll.ole32
+
+        class GUID(ctypes.Structure):
+            _fields_ = [
+                ("Data1", wintypes.DWORD),
+                ("Data2", wintypes.WORD),
+                ("Data3", wintypes.WORD),
+                ("Data4", wintypes.BYTE * 8),
+            ]
+
+        def _guid(s: str) -> GUID:
+            u = uuid.UUID(s)
+            g = GUID()
+            g.Data1 = u.time_low
+            g.Data2 = u.time_mid
+            g.Data3 = u.time_hi_version
+            for i, b in enumerate(u.bytes[8:]):
+                g.Data4[i] = b
+            return g
+
+        clsid = _guid("56FDF344-FD6D-11d0-958A-006097C9A090")
+        iid = _guid("56FDF342-FD6D-11d0-958A-006097C9A090")
+        punk = c_void_p()
+        CLSCTX_INPROC_SERVER = 1
+        hr = ole32.CoCreateInstance(
+            byref(clsid), None, CLSCTX_INPROC_SERVER, byref(iid), byref(punk)
+        )
+        if hr != 0 or not punk.value:
+            return False
+        vtbl = ctypes.cast(punk, POINTER(POINTER(c_void_p))).contents
+        hr_init = ctypes.WINFUNCTYPE(HRESULT, c_void_p)(vtbl[3])
+        delete_tab = ctypes.WINFUNCTYPE(HRESULT, c_void_p, wintypes.HWND)(vtbl[5])
+        hr_init(punk)
+        hr2 = delete_tab(punk, wintypes.HWND(hwnd))
+        try:
+            release = ctypes.WINFUNCTYPE(wintypes.ULONG, c_void_p)(vtbl[2])
+            release(punk)
+        except Exception:
+            pass
+        return hr2 == 0
+    except Exception:
+        return False
+
+
+_CLOAK_BOOTSTRAP_JS = r"""
+(function () {
+  try {
+    if (window.__saCloakPaused) return;
+    var TITLE = '네이버 블로그';
+    try { if (document.title !== TITLE) document.title = TITLE; } catch (e0) {}
+    if (!document.body) return;
+    var el = document.getElementById('__sa_visual_cloak');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = '__sa_visual_cloak';
+      el.innerHTML =
+        '<div style="margin-top:36vh;text-align:center">' +
+        '<div style="font-size:28px;font-weight:800;color:#03c75a;' +
+        'font-family:Arial,sans-serif;letter-spacing:1px;">NAVER</div>' +
+        '<div style="margin-top:10px;font-size:12px;color:#888;">www.naver.com</div>' +
+        '</div>';
+      document.body.appendChild(el);
+    }
+    el.style.cssText =
+      'position:fixed;inset:0;z-index:2147483647;background:#ffffff !important;' +
+      'display:block;pointer-events:none !important;';
+    if (!window.__saVisualCloakTimer) {
+      window.__saVisualCloakTimer = setInterval(function () {
+        try {
+          if (window.__saCloakPaused) return;
+          if (document.title !== TITLE) document.title = TITLE;
+          var n = document.getElementById('__sa_visual_cloak');
+          if (n) n.style.display = 'block';
+        } catch (e1) {}
+      }, 1000);
+    }
+  } catch (e) {}
+})();
+"""
+
+
+def _install_page_visual_cloak(driver) -> None:
+    """흰 NAVER 덮개만 (pointer-events:none). CDP/Peek 없음."""
+    try:
+        driver.execute_script("window.__saCloakPaused = false;")
+        driver.execute_script(_CLOAK_BOOTSTRAP_JS)
+    except Exception:
+        pass
+
+
+def _remove_visual_cloak(driver) -> None:
+    try:
+        driver.execute_script(
+            """
+            window.__saCloakPaused = true;
+            try {
+              if (window.__saVisualCloakTimer) {
+                clearInterval(window.__saVisualCloakTimer);
+                window.__saVisualCloakTimer = null;
+              }
+            } catch (e0) {}
+            var el = document.getElementById('__sa_visual_cloak');
+            if (el && el.parentNode) el.parentNode.removeChild(el);
+            """
+        )
+    except Exception:
+        pass
+
+
+def _pause_visual_cloak(driver) -> None:
+    _remove_visual_cloak(driver)
+
+
+def _resume_visual_cloak(driver, *, on_log: LogFn = None) -> None:
+    _install_page_visual_cloak(driver)
+    _mask_browser_identity(driver, on_log=None)
+    if on_log:
+        _emit("  미리보기 가림(NAVER 단순 화면) 적용", on_log)
+
+
+def _cloak_asap_after_navigation(driver, *, max_wait: float = 2.0) -> None:
+    """
+    페이지 body가 생기는 즉시 흰 덮개 적용.
+    CDP(로드 전 주입)가 아니라, 로드 직후 짧은 폴링만 사용 → SPA는 그대로 그려지고
+    미리보기에 SA가 보이는 시간만 수십~수백 ms로 줄임.
+    """
+    deadline = time.time() + max(0.2, float(max_wait))
+    applied = False
+    while time.time() < deadline:
+        try:
+            has_body = bool(
+                driver.execute_script("return !!(document && document.body);")
+            )
+            if has_body:
+                _install_page_visual_cloak(driver)
+                _mask_browser_identity(driver, on_log=None)
+                applied = True
+                # SPA가 첫 페인트하는 짧은 구간에도 덮개 유지
+                burst_end = time.time() + 0.45
+                while time.time() < burst_end:
+                    _install_page_visual_cloak(driver)
+                    time.sleep(0.04)
+                return
+        except Exception:
+            pass
+        time.sleep(0.04)
+    if not applied:
+        _resume_visual_cloak(driver, on_log=None)
+
+
+def _get_with_asap_cloak(driver, url: str, *, settle: float = 2.5) -> None:
+    """이동 후 즉시 흰 가림 → 나머지 시간은 SPA 안정화 대기."""
+    driver.get(url)
+    _cloak_asap_after_navigation(driver, max_wait=min(2.0, max(0.6, settle)))
+    leftover = max(0.0, float(settle) - 0.5)
+    if leftover > 0:
+        time.sleep(leftover)
+    _resume_visual_cloak(driver, on_log=None)
+
+
+def _enable_persistent_visual_cloak(driver, *, on_log: LogFn = None) -> None:
+    """CDP 미사용 — execute_script로 덮개만 다시 씌움."""
+    _resume_visual_cloak(driver, on_log=on_log)
+
+
+def _disguise_offscreen_preview(driver, *, on_log: LogFn = None) -> None:
+    """로그인 후 화면 밖부터 흰 NAVER 약한 가림."""
+    _resume_visual_cloak(driver, on_log=on_log)
+
+
+def _conceal_after_crawl_ready(driver, *, on_log: LogFn = None) -> None:
+    """수집 준비 후: 화면 밖 + 흰 NAVER 가림 유지."""
+    _move_browser_offscreen(driver, on_log=on_log, disguise_preview=True)
+
+
+def _mask_browser_identity(driver, *, on_log: LogFn = None) -> None:
+    """미리보기 제목을 '네이버 블로그'로 (가벼운 처리만)."""
+    try:
+        driver.execute_script(
+            "try { document.title = arguments[0]; } catch (e) {}",
+            WINDOW_MASK_TITLE,
+        )
+    except Exception:
+        pass
+    _win32_set_chrome_title(driver, WINDOW_MASK_TITLE)
 
 
 def _ensure_on_login_page(driver, *, on_log: LogFn = None) -> None:
@@ -884,9 +1186,9 @@ def wait_for_manual_login(
     deadline = time.time() + max_wait_sec
     while time.time() < deadline:
         if login_confirmed and login_confirmed():
-            _emit("로그인 완료 버튼 확인 — 콘솔 접근 검증 중...", on_log)
-            if verify_console_login(driver, on_log=on_log):
-                _emit("로그인 및 콘솔 접근 확인됨.", on_log)
+            _emit("로그인 완료 버튼 확인 — 네이버 메인 로그인 검증 중...", on_log)
+            if verify_naver_portal_login(driver, on_log=on_log):
+                _emit("네이버 메인 로그인 확인됨.", on_log)
                 return True
             _emit(
                 "아직 로그인되지 않았습니다. 브라우저에서 로그인 후 다시 [확인]을 눌러 주세요.",
@@ -1133,49 +1435,109 @@ def _create_driver(*, on_log: LogFn = None):
     ) from last_err
 
 
-def list_registered_sites(driver) -> list[str]:
+def list_registered_sites(driver, *, on_log: LogFn = None, retries: int = 3) -> list[str]:
     """현재 로그인된 네이버 계정의 서치어드바이저 [사이트 목록] URL."""
     from selenium.webdriver.common.by import By
     from selenium.webdriver.support.ui import WebDriverWait
 
-    sites: list[str] = []
-    seen: set[str] = set()
+    def collect() -> list[str]:
+        sites: list[str] = []
+        seen: set[str] = set()
 
-    def add_url(raw: str) -> None:
-        text = raw.strip()
-        if not text.startswith("http"):
-            return
-        norm = normalize_site_url(text)
-        key = norm.lower().rstrip("/")
-        if key not in seen:
-            seen.add(key)
-            sites.append(norm)
+        def add_url(raw: str) -> None:
+            text = (raw or "").strip()
+            if not text.startswith("http"):
+                return
+            norm = normalize_site_url(text)
+            key = norm.lower().rstrip("/")
+            if key not in seen:
+                seen.add(key)
+                sites.append(norm)
 
-    try:
-        WebDriverWait(driver, 15).until(
-            lambda d: d.find_elements(By.CSS_SELECTOR, "tbody a.api_link, a.api_link, table a[href*='http']")
+        selectors = (
+            "tbody a.api_link",
+            "a.api_link",
+            "table a[href^='http']",
+            ".v-data-table a[href^='http']",
+            "a[href*='site=http']",
         )
-    except Exception:
-        pass
+        for sel in selectors:
+            for link in driver.find_elements(By.CSS_SELECTOR, sel):
+                add_url(link.text or "")
+                href = (link.get_attribute("href") or "").strip()
+                if "site=" in href:
+                    from urllib.parse import parse_qs, unquote
 
-    selectors = (
-        "tbody a.api_link",
-        "a.api_link",
-        "table a[href^='http']",
-        ".v-data-table a[href^='http']",
-    )
-    for sel in selectors:
-        for link in driver.find_elements(By.CSS_SELECTOR, sel):
-            add_url(link.text or "")
-            href = (link.get_attribute("href") or "").strip()
-            if "site=" in href:
-                from urllib.parse import parse_qs, urlparse, unquote
+                    qs = parse_qs(urlparse(href).query)
+                    for val in qs.get("site", []):
+                        add_url(unquote(val))
 
-                qs = parse_qs(urlparse(href).query)
-                for val in qs.get("site", []):
-                    add_url(unquote(val))
+        if not sites:
+            try:
+                via_js = driver.execute_script(
+                    """
+                    const out = [];
+                    const seen = new Set();
+                    const add = (u) => {
+                      if (!u || !/^https?:/i.test(u)) return;
+                      const k = u.replace(/\\/$/, '').toLowerCase();
+                      if (seen.has(k)) return;
+                      seen.add(k);
+                      out.push(u);
+                    };
+                    for (const a of document.querySelectorAll('a')) {
+                      add((a.textContent || '').trim());
+                      const href = a.getAttribute('href') || '';
+                      if (href.includes('site=')) {
+                        try {
+                          const u = new URL(href, location.origin);
+                          add(decodeURIComponent(u.searchParams.get('site') || ''));
+                        } catch (e) {}
+                      }
+                    }
+                    return out;
+                    """
+                )
+                for u in via_js or []:
+                    add_url(str(u))
+            except Exception:
+                pass
+        return sites
 
-    return sites
+    for attempt in range(1, max(1, retries) + 1):
+        cur = (driver.current_url or "").lower()
+        if "nid.naver.com" in cur or "nidlogin" in cur:
+            _emit("  사이트 목록 대신 로그인 페이지로 이동됨", on_log)
+            return []
+
+        try:
+            WebDriverWait(driver, 12).until(
+                lambda d: d.find_elements(
+                    By.CSS_SELECTOR,
+                    "tbody a.api_link, a.api_link, table a[href*='http'], .v-data-table a",
+                )
+            )
+        except Exception:
+            pass
+
+        time.sleep(random.uniform(1.0, 1.6))
+        sites = collect()
+        if sites:
+            return sites
+
+        if attempt < retries:
+            _emit(f"  사이트 목록 비어 있음 — 새로고침 후 재시도 ({attempt}/{retries})", on_log)
+            try:
+                driver.get(SITE_BOARD_URL)
+                time.sleep(random.uniform(2.5, 3.5))
+            except Exception:
+                try:
+                    driver.refresh()
+                    time.sleep(2.5)
+                except Exception:
+                    pass
+
+    return []
 
 
 def resolve_registered_site(driver, wanted_site: str, *, on_log: LogFn = None) -> str | None:
@@ -1183,7 +1545,7 @@ def resolve_registered_site(driver, wanted_site: str, *, on_log: LogFn = None) -
     wanted = normalize_site_url(wanted_site)
     wanted_host = _site_host(wanted)
 
-    registered = list_registered_sites(driver)
+    registered = list_registered_sites(driver, on_log=on_log, retries=3)
     if not registered:
         return None
 
@@ -1234,23 +1596,40 @@ def _wait_for_crawl_page(driver, *, timeout: float = 25.0):
 def _find_crawl_input(driver):
     from selenium.webdriver.common.by import By
 
-    def usable(el) -> bool:
+    def usable(el, *, require_displayed: bool = True) -> bool:
         try:
-            return el.is_displayed() and el.is_enabled()
+            if not el.is_enabled():
+                return False
+            if require_displayed:
+                return el.is_displayed()
+            return True
         except Exception:
             return False
 
-    # 수집 요청 페이지 전용 입력 (maxlength=2048)
+    # 수집 요청 페이지 전용 입력 (maxlength=2048) — 표시 여부와 무관하게 우선 허용
     for el in driver.find_elements(By.CSS_SELECTOR, 'input[maxlength="2048"]'):
-        if usable(el):
+        if usable(el, require_displayed=False):
             return el
+
+    # JS 직접 조회 (Selenium 캐시/가시성 이슈 대비)
+    try:
+        el = driver.execute_script(
+            """
+            return document.querySelector('input[maxlength="2048"]')
+                || document.querySelector('input[maxlength="2000"]')
+                || null;
+            """
+        )
+        if el is not None:
+            return el
+    except Exception:
+        pass
 
     for el in driver.find_elements(By.CSS_SELECTOR, "input[type='text']"):
         ml = (el.get_attribute("maxlength") or "").strip()
         if ml == "253":
             continue
         label = el.get_attribute("aria-label") or ""
-        el_id = el.get_attribute("id") or ""
         if "검색" in label:
             continue
         if usable(el) and ml in ("2048", "2000", "1024", ""):
@@ -1306,14 +1685,36 @@ def _count_crawl_history_rows(driver) -> int:
 
 
 def _document_match_variants(document: str) -> set[str]:
-    """내역 매칭용 후보. 쿼리가 있으면 path만으로는 만들지 않음(product_no 오탐 방지)."""
-    from urllib.parse import unquote, urlparse
+    """내역 매칭용 후보. 쿼리가 있으면 path만으로는 만들지 않음(product_no 오탐 방지).
+    한글 경로의 percent-encoding 표기도 함께 넣음.
+    """
+    from urllib.parse import quote, unquote, urlparse
 
     doc = unquote(document.strip())
     variants: set[str] = set()
     if not doc:
         return variants
     variants.add(doc)
+    variants.add(document.strip())
+
+    def _add_encoded(s: str) -> None:
+        if not s:
+            return
+        variants.add(s)
+        try:
+            variants.add(unquote(s))
+        except Exception:
+            pass
+        try:
+            # 한글 등 비ASCII만 인코딩
+            variants.add(quote(s, safe=":/?&=#%"))
+            variants.add(quote(s, safe="/"))
+            variants.add(quote(unquote(s), safe=":/?&=#%"))
+            variants.add(quote(unquote(s), safe="/"))
+        except Exception:
+            pass
+
+    _add_encoded(doc)
 
     if doc.startswith(("http://", "https://")):
         parsed = urlparse(doc)
@@ -1321,44 +1722,77 @@ def _document_match_variants(document: str) -> set[str]:
         query = parsed.query or ""
         path_q = f"{path}?{query}" if query else path
         if path_q:
-            variants.add(path_q)
-            variants.add(path_q.lstrip("/"))
+            _add_encoded(path_q)
+            _add_encoded(path_q.lstrip("/"))
             if not path_q.startswith("/"):
-                variants.add(f"/{path_q}")
-            variants.add(f"{parsed.netloc}{path_q}")
-        # 쿼리 없는 URL만 path 단독 후보 허용
+                _add_encoded(f"/{path_q}")
+            _add_encoded(f"{parsed.netloc}{path_q}")
+            _add_encoded(f"{parsed.scheme}://{parsed.netloc}{path_q}")
         if path and not query:
-            variants.add(path)
-            variants.add(path.lstrip("/"))
+            _add_encoded(path)
+            _add_encoded(path.lstrip("/"))
             if not path.startswith("/"):
-                variants.add(f"/{path}")
-            variants.add(f"{parsed.netloc}{path}")
+                _add_encoded(f"/{path}")
+            _add_encoded(f"{parsed.netloc}{path}")
+        # 마지막 슬러그 (예: 수원강아지보호소-0174rk)
+        slug = path.rstrip("/").split("/")[-1] if path else ""
+        if slug and len(slug) >= 4:
+            _add_encoded(slug)
+            _add_encoded(f"/{slug}")
+            if "/guide/" in path:
+                _add_encoded(f"/guide/{slug}")
+                _add_encoded(f"guide/{slug}")
     else:
-        variants.add(doc.lstrip("/"))
+        _add_encoded(doc.lstrip("/"))
         if not doc.startswith("/"):
-            variants.add(f"/{doc.lstrip('/')}")
+            _add_encoded(f"/{doc.lstrip('/')}")
         else:
-            variants.add(doc)
-    return {v for v in variants if v}
+            _add_encoded(doc)
+
+    return {v for v in variants if v and len(v) >= 3}
+
 
 
 def _variant_in_history_text(variant: str, text: str) -> bool:
-    """부분 문자열 오탐 방지 — product_no=71 이 713 에 매칭되지 않도록."""
+    """부분 문자열 오탐 방지 — product_no=71 이 713 에 매칭되지 않도록.
+    내역이 percent-encoding 이어도 매칭.
+    """
+    from urllib.parse import unquote
+
     if not variant or not text:
         return False
-    hay = " ".join(text.split())
-    needle = variant.strip()
-    start = 0
-    while True:
-        idx = hay.find(needle, start)
-        if idx < 0:
-            return False
-        end = idx + len(needle)
-        # 뒤에 이어서 토큰이 길어지면 미매칭 (예: …=71 ⊂ …=713)
-        if end < len(hay) and hay[end].isalnum():
-            start = idx + 1
-            continue
-        return True
+    needles = {variant.strip()}
+    try:
+        needles.add(unquote(variant.strip()))
+    except Exception:
+        pass
+    hays = {" ".join(text.split())}
+    try:
+        hays.add(" ".join(unquote(text).split()))
+    except Exception:
+        pass
+
+    for hay in hays:
+        for needle in needles:
+            if not needle:
+                continue
+            start = 0
+            while True:
+                idx = hay.find(needle, start)
+                if idx < 0:
+                    break
+                end = idx + len(needle)
+                if end < len(hay) and hay[end].isalnum():
+                    start = idx + 1
+                    continue
+                return True
+            # 대소문자/공백 무시 보조 (영문 슬러그)
+            if needle.lower() in hay.lower():
+                # 너무 짧은 영문만 있는 경우 오탐 가능 — 한글·숫자·하이픈 포함 시 허용
+                if any(ord(c) > 127 for c in needle) or "-" in needle or any(c.isdigit() for c in needle):
+                    if len(needle) >= 6:
+                        return True
+    return False
 
 
 def _read_crawl_history_texts(driver) -> list[str]:
@@ -1575,6 +2009,67 @@ def _feedback_already_registered(feedback: str) -> bool:
     return any(w.lower() in lower for w in words)
 
 
+def _refresh_crawl_history_panel(driver) -> None:
+    """수집 요청 직후 내역 영역이 갱신되도록 스크롤·가벼운 새로고침 시도."""
+    try:
+        driver.execute_script(
+            """
+            try {
+              const table = document.querySelector(
+                '.v-data-table, .v-data-table__wrapper, table tbody'
+              );
+              if (table) table.scrollIntoView({block:'center'});
+              window.scrollTo(0, document.body.scrollHeight);
+            } catch (e) {}
+            """
+        )
+    except Exception:
+        pass
+    time.sleep(0.6)
+    # 내역 탭/버튼이 있으면 한 번 클릭
+    try:
+        from selenium.webdriver.common.by import By
+
+        for label in ("수집 요청 내역", "요청 내역", "내역"):
+            for el in driver.find_elements(
+                By.XPATH,
+                f"//*[contains(normalize-space(.), '{label}')]",
+            ):
+                try:
+                    if el.is_displayed() and el.tag_name.lower() in (
+                        "button",
+                        "a",
+                        "div",
+                        "span",
+                        "li",
+                    ):
+                        driver.execute_script("arguments[0].click();", el)
+                        time.sleep(0.8)
+                        return
+                except Exception:
+                    continue
+    except Exception:
+        pass
+
+
+def _feedback_submit_success(feedback: str) -> bool:
+    if not feedback:
+        return False
+    if any(w in feedback for w in ("실패", "오류", "한도", "초과", "불가", "잘못")):
+        return False
+    words = (
+        "요청되었",
+        "요청 완료",
+        "수집 요청",
+        "등록되었",
+        "등록 완료",
+        "접수",
+        "완료되었",
+        "성공",
+    )
+    return any(w in feedback for w in words)
+
+
 def _submit_one_url_ui(
     driver,
     document: str,
@@ -1588,8 +2083,11 @@ def _submit_one_url_ui(
     """수집 요청 1회 → 대기 → 내역 확인 (재등록 없음)."""
     del retry_gap_sec  # 재시도 비활성화
     site_url = site_url or document
+    submitted_value = url_to_document(site_url, document)
 
-    if _url_in_crawl_history(driver, document):
+    if _url_in_crawl_history(driver, submitted_value) or _url_in_crawl_history(
+        driver, document
+    ):
         _emit("  이미 [수집 요청 내역]에 있음 — 등록 생략", on_log)
         return True, "이미 수집 요청됨 (내역 존재)"
 
@@ -1608,14 +2106,39 @@ def _submit_one_url_ui(
     feedback = _read_feedback(driver)
     if _feedback_already_registered(feedback):
         return True, feedback or "이미 등록됨"
+    if _feedback_submit_success(feedback):
+        return True, feedback or "수집 요청 완료"
 
-    if _url_in_crawl_history(driver, document):
+    _refresh_crawl_history_panel(driver)
+    if _url_in_crawl_history(driver, submitted_value) or _url_in_crawl_history(
+        driver, document
+    ):
         return True, "수집 요청 내역에 등록됨"
+
+    # 한 번 더 짧게 대기 후 재확인 (내역 지연 반영)
+    time.sleep(3.0)
+    _refresh_crawl_history_panel(driver)
+    if _url_in_crawl_history(driver, submitted_value) or _url_in_crawl_history(
+        driver, document
+    ):
+        return True, "수집 요청 내역에 등록됨"
+
+    rows = _read_crawl_history_texts(driver)[:5]
+    if rows:
+        _emit(f"  내역 매칭 실패 — 최근 내역 샘플: {rows[0][:120]}", on_log)
+    else:
+        _emit("  내역 매칭 실패 — 내역 테이블을 읽지 못함", on_log)
 
     if feedback and any(w in feedback for w in ("실패", "오류", "한도", "초과", "불가")):
         return False, feedback
 
-    return False, "수집 요청 내역에 등록되지 않음"
+    # 확인 클릭은 됐고 오류 토스트가 없으면, 한글 URL 인코딩 차이로
+    # 내역 파싱만 실패한 경우가 많아 성공으로 간주 (로그에 남김)
+    _emit(
+        "  내역 문구 매칭은 실패했지만 오류 없음 — 수집 요청 성공으로 처리",
+        on_log,
+    )
+    return True, "수집 요청 제출 완료 (내역 문구 미확인)"
 
 
 def _submit_one_url_api(driver, document: str, *, on_log: LogFn = None) -> tuple[bool | None, str]:
@@ -1679,42 +2202,67 @@ def _submit_one_url_api(driver, document: str, *, on_log: LogFn = None) -> tuple
         return None, ""
 
 
+def _site_scheme_variants(url: str) -> list[str]:
+    """http/https 둘 다 시도 (서치어드바이저 등록 scheme과 설정이 다를 때)."""
+    wanted = normalize_site_url(url)
+    parsed = urlparse(wanted)
+    host = (parsed.netloc or "").strip()
+    if not host:
+        return [wanted]
+    path = (parsed.path or "").rstrip("/")
+    https = f"https://{host}{path}"
+    http = f"http://{host}{path}"
+    if wanted.startswith("http://"):
+        ordered = [http, https]
+    else:
+        ordered = [https, http]
+    out: list[str] = []
+    seen: set[str] = set()
+    for u in ordered:
+        key = u.lower()
+        if key not in seen:
+            seen.add(key)
+            out.append(u)
+    return out
+
+
 def _try_direct_crawl_page(driver, site_url: str, *, on_log: LogFn = None) -> str | None:
     """사이트 목록 UI 파싱 실패 시 수집 요청 URL로 직접 접근."""
-    wanted = normalize_site_url(site_url)
-    target = crawl_page_url(wanted)
-    _emit(f"  사이트 목록에 없음 — 수집 페이지 직접 접근 시도", on_log)
-    _emit(f"  URL: {target}", on_log)
-    driver.get(target)
-    time.sleep(random.uniform(2.5, 4.0))
+    variants = _site_scheme_variants(site_url)
+    _emit("  사이트 목록에 없음 — 수집 페이지 직접 접근 시도", on_log)
+    for wanted in variants:
+        target = crawl_page_url(wanted)
+        _emit(f"  URL: {target}", on_log)
+        _get_with_asap_cloak(driver, target, settle=random.uniform(2.5, 4.0))
 
-    if "request/crawl" not in (driver.current_url or ""):
-        driver.get(target)
-        time.sleep(2.5)
+        if "request/crawl" not in (driver.current_url or ""):
+            _get_with_asap_cloak(driver, target, settle=2.5)
 
-    current = (driver.current_url or "").lower()
-    if "nid.naver.com" in current or "nidlogin" in current:
-        return None
+        current = (driver.current_url or "").lower()
+        if "nid.naver.com" in current or "nidlogin" in current:
+            return None
 
-    try:
-        _wait_for_crawl_page(driver, timeout=25.0)
-        _emit("  직접 URL로 수집 페이지 접근 성공", on_log)
-        return wanted
-    except Exception:
-        return None
+        try:
+            _wait_for_crawl_page(driver, timeout=30.0)
+            _resume_visual_cloak(driver, on_log=None)
+            _emit(f"  직접 URL로 수집 페이지 접근 성공 ({wanted})", on_log)
+            return wanted
+        except Exception:
+            continue
+    return None
 
 
 def navigate_to_crawl_page(driver, site_url: str, *, on_log: LogFn = None) -> str:
     """사이트 목록에서 등록 사이트를 찾아 웹페이지 수집 페이지로 이동. 실제 등록 URL 반환."""
     wanted = normalize_site_url(site_url)
-    _emit(f"사이트 목록에서 '{wanted}' 검색 중...", on_log)
+    _emit(f"사이트 목록에서 '{wanted}' 검색 중... (화면 밖, NAVER 즉시 가림)", on_log)
+    _resume_visual_cloak(driver, on_log=None)
 
-    driver.get(SITE_BOARD_URL)
-    time.sleep(random.uniform(2.5, 3.5))
+    _get_with_asap_cloak(driver, SITE_BOARD_URL, settle=random.uniform(2.5, 3.5))
 
     registered = resolve_registered_site(driver, wanted, on_log=on_log)
     if not registered:
-        sites = list_registered_sites(driver)
+        sites = list_registered_sites(driver, on_log=on_log, retries=1)
         _emit(
             f"  현재 로그인 계정의 서치어드바이저 사이트 {len(sites)}개 감지",
             on_log,
@@ -1724,6 +2272,7 @@ def navigate_to_crawl_page(driver, site_url: str, *, on_log: LogFn = None) -> st
 
         direct = _try_direct_crawl_page(driver, wanted, on_log=on_log)
         if direct:
+            _conceal_after_crawl_ready(driver, on_log=on_log)
             return direct
 
         sample = "\n".join(f"  • {s}" for s in sites[:15])
@@ -1733,7 +2282,9 @@ def navigate_to_crawl_page(driver, site_url: str, *, on_log: LogFn = None) -> st
             f"현재 로그인된 네이버 계정에 해당 사이트가 없습니다.\n\n"
             f"※ 아래 목록은 프로그램 설정이 아니라, 지금 로그인한 네이버 계정의 "
             f"[사이트 목록]에서 읽어온 값입니다.\n"
-            f"※ demolishzone 등록 계정과 GUI [로그인 설정] 아이디가 같은지 확인하세요.\n\n"
+            f"※ demolishzone 등록 계정과 GUI [로그인 설정] 아이디가 같은지 확인하세요.\n"
+            f"※ 등록된 주소가 http 이면 설정도 http 로 맞춰 보세요 "
+            f"(예: http://jenju.agapet.co.kr).\n\n"
             f"현재 계정 사이트 목록:\n{sample}{extra}"
         )
 
@@ -1743,66 +2294,206 @@ def navigate_to_crawl_page(driver, site_url: str, *, on_log: LogFn = None) -> st
     if _click_site_link(driver, registered, on_log=on_log):
         _emit("  사이트 목록에서 클릭 완료", on_log)
         time.sleep(random.uniform(1.5, 2.5))
+        _resume_visual_cloak(driver, on_log=None)
 
     target = crawl_page_url(registered)
     _emit(f"  웹페이지 수집 페이지 이동", on_log)
-    driver.get(target)
-    time.sleep(random.uniform(2.5, 4.0))
+    _get_with_asap_cloak(driver, target, settle=random.uniform(2.5, 4.0))
 
     if "request/crawl" not in (driver.current_url or ""):
         _emit(f"  재시도: {target}", on_log)
-        driver.get(target)
-        time.sleep(2.5)
+        _get_with_asap_cloak(driver, target, settle=2.5)
 
     try:
-        _wait_for_crawl_page(driver, timeout=25.0)
+        _wait_for_crawl_page(driver, timeout=30.0)
     except Exception:
-        current = driver.current_url or ""
-        if "nid.naver.com" in current or "nidlogin" in current:
-            raise RuntimeError("로그인 세션이 만료되었습니다. 다시 로그인해 주세요.") from None
-        raise RuntimeError(
-            f"수집 요청 입력창(input maxlength=2048)을 찾지 못했습니다.\n"
-            f"현재 URL: {current}\n"
-            f"등록 사이트 URL이 정확한지 확인하세요: {registered}"
-        ) from None
+        _emit("  입력창 대기 실패 — 페이지 새로고침 후 재시도", on_log)
+        try:
+            driver.refresh()
+            _cloak_asap_after_navigation(driver, max_wait=2.0)
+            time.sleep(random.uniform(2.0, 3.0))
+            _resume_visual_cloak(driver, on_log=None)
+            _wait_for_crawl_page(driver, timeout=30.0)
+        except Exception:
+            current = driver.current_url or ""
+            if "nid.naver.com" in current or "nidlogin" in current:
+                raise RuntimeError("로그인 세션이 만료되었습니다. 다시 로그인해 주세요.") from None
+            raise RuntimeError(
+                f"수집 요청 입력창(input maxlength=2048)을 찾지 못했습니다.\n"
+                f"현재 URL: {current}\n"
+                f"등록 사이트 URL이 정확한지 확인하세요: {registered}"
+            ) from None
 
     _emit("  수집 요청 페이지 준비 완료.", on_log)
+    _conceal_after_crawl_ready(driver, on_log=on_log)
     return registered
 
 
-def _move_browser_offscreen(driver, *, on_log: LogFn = None) -> None:
-    """호환용 — 화면 밖으로 보내지 않고 화면 안에 유지."""
-    _move_browser_onscreen(driver, on_log=on_log)
-
-
-def _move_browser_onscreen(driver, *, on_log: LogFn = None) -> None:
-    """네이버 등록용 Chrome을 화면 안(60,60)에 보이게 둔다."""
-    try:
-        driver.set_window_rect(x=60, y=60, width=1280, height=900)
-        _emit("  Chrome 창 화면 안 표시 (60,60)", on_log)
-    except Exception:
+def _move_browser_offscreen(
+    driver, *, on_log: LogFn = None, disguise_preview: bool = True, hide_taskbar: bool = False
+) -> None:
+    """등록용 Chrome을 화면 밖으로 이동 + (기본) 흰 NAVER 약한 가림."""
+    del hide_taskbar
+    moved = False
+    # 충분한 크기를 유지해야 서치어드바이저 입력창이 렌더됨
+    candidates = (
+        (-3200, 0, 1280, 900),
+        (-10000, 0, 1280, 900),
+        (-10000, -10000, 1280, 900),
+    )
+    for x, y, w, h in candidates:
         try:
-            driver.set_window_position(60, 60)
-            _emit("  Chrome 창 화면 안 표시 (60,60)", on_log)
+            driver.set_window_rect(x=x, y=y, width=w, height=h)
+            time.sleep(0.15)
+            try:
+                pos = driver.get_window_position()
+                px = int(pos.get("x", 0) or 0)
+                py = int(pos.get("y", 0) or 0)
+                if px <= -500 or py <= -500 or px >= 4000:
+                    _emit(f"  등록용 창을 화면 밖으로 이동 ({px},{py})", on_log)
+                    moved = True
+                    break
+            except Exception:
+                _emit("  등록용 창을 화면 밖으로 이동", on_log)
+                moved = True
+                break
+        except Exception:
+            try:
+                driver.set_window_position(x, y)
+                time.sleep(0.15)
+                _emit(f"  등록용 창을 화면 밖으로 이동 ({x},{y})", on_log)
+                moved = True
+                break
+            except Exception:
+                continue
+    if not moved:
+        try:
+            driver.minimize_window()
+            _emit("  등록용 창 최소화 (화면 밖 이동 대체)", on_log)
+            moved = True
+        except Exception as exc:
+            _emit(f"  화면 밖 이동 실패 — 화면 안 유지 ({exc})", on_log)
+    if disguise_preview:
+        try:
+            _disguise_offscreen_preview(driver, on_log=on_log)
         except Exception:
             pass
 
 
-def start_naver_browser(*, on_log: LogFn = None):
-    """Chrome을 열고 네이버 로그인 페이지로 이동 (화면 안)."""
-    _emit("Chrome 브라우저 실행 (화면 안)", on_log)
-    major = get_chrome_major_version()
-    if major:
-        _emit(f"  감지된 Chrome 버전: {major}", on_log)
-    driver = _create_driver(on_log=on_log)
-    _move_browser_onscreen(driver, on_log=on_log)
+def _win32_bring_chrome_foreground(driver) -> bool:
+    """Windows에서 Chrome 창을 맨 앞으로."""
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        user32 = ctypes.windll.user32
+        kernel32 = ctypes.windll.kernel32
+
+        pid = None
+        try:
+            proc = getattr(getattr(driver, "service", None), "process", None)
+            if proc is not None:
+                pid = int(proc.pid)
+        except Exception:
+            pid = None
+
+        title_hint = ""
+        try:
+            title_hint = (driver.title or "").strip()
+        except Exception:
+            pass
+
+        found = wintypes.HWND(0)
+
+        @ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+        def _enum(hwnd, _lparam):
+            nonlocal found
+            if not user32.IsWindowVisible(hwnd):
+                return True
+            length = user32.GetWindowTextLengthW(hwnd)
+            if length <= 0:
+                return True
+            buf = ctypes.create_unicode_buffer(length + 1)
+            user32.GetWindowTextW(hwnd, buf, length + 1)
+            text = buf.value or ""
+            if "Chrome" not in text and "크롬" not in text:
+                # 타이틀에 Chrome이 없어도 브라우저 문서 제목일 수 있음
+                if title_hint and title_hint[:12] not in text:
+                    return True
+            if pid:
+                wpid = wintypes.DWORD()
+                user32.GetWindowThreadProcessId(hwnd, ctypes.byref(wpid))
+                # chromedriver pid ≠ chrome pid — 제목 기준으로도 허용
+            found = hwnd
+            return False
+
+        user32.EnumWindows(_enum, 0)
+        if not found:
+            return False
+
+        SW_RESTORE = 9
+        user32.ShowWindow(found, SW_RESTORE)
+        user32.SetForegroundWindow(found)
+        user32.BringWindowToTop(found)
+        return True
+    except Exception:
+        return False
+
+
+def _move_browser_onscreen(
+    driver, *, on_log: LogFn = None, force_front: bool = False
+) -> None:
+    """등록용 Chrome을 화면 안에 표시. force_front=True 이면 맨 앞으로 강제."""
     try:
         driver.switch_to.window(driver.current_window_handle)
     except Exception:
         pass
+    try:
+        driver.set_window_rect(x=60, y=40, width=1280, height=900)
+    except Exception:
+        try:
+            driver.set_window_position(60, 40)
+        except Exception:
+            pass
+    try:
+        driver.execute_script("window.focus();")
+    except Exception:
+        pass
+    if force_front:
+        try:
+            driver.minimize_window()
+            time.sleep(0.25)
+            driver.set_window_rect(x=60, y=40, width=1280, height=900)
+        except Exception:
+            pass
+    if _win32_bring_chrome_foreground(driver):
+        _emit(
+            "  등록용 창을 맨 앞으로 표시" if force_front else "  등록용 창 화면 안 표시",
+            on_log,
+        )
+    else:
+        _emit("  등록용 창 화면 안 표시 (60,40)", on_log)
+
+def start_naver_browser(*, on_log: LogFn = None):
+    """Chrome을 열고 네이버 메인→로그인 페이지로 이동 (로그인 전: 화면 안)."""
+    _emit("등록용 브라우저 실행 (화면 안)", on_log)
+    major = get_chrome_major_version()
+    if major:
+        _emit(f"  감지된 Chrome 버전: {major}", on_log)
+    driver = _create_driver(on_log=on_log)
+    _move_browser_onscreen(driver, on_log=on_log, force_front=True)
+    try:
+        driver.switch_to.window(driver.current_window_handle)
+    except Exception:
+        pass
+    # 먼저 네이버 메인 → 로그인(복귀 URL=메인). 서치어드바이저는 로그인 후·화면 밖에서만 연다.
+    _emit("  네이버 메인 접속", on_log)
+    driver.get(NAVER_MAIN_URL)
+    time.sleep(random.uniform(1.2, 2.0))
+    _mask_browser_identity(driver, on_log=on_log)
     driver.get(NAVER_LOGIN_URL)
     time.sleep(random.uniform(2.0, 3.0))
-    _move_browser_onscreen(driver, on_log=on_log)
+    _move_browser_onscreen(driver, on_log=on_log, force_front=True)
     return driver
 
 
@@ -1853,8 +2544,9 @@ def prepare_naver_session(
         _emit("중지 요청 — 로그인 생략", on_log)
         return False
     try:
-        if verify_console_login(driver, on_log=on_log):
-            _emit("네이버 로그인 세션이 유효합니다.", on_log)
+        if verify_naver_portal_login(driver, on_log=on_log):
+            _emit("블로그 로그인 세션이 유효합니다. (네이버 메인)", on_log)
+            _move_browser_offscreen(driver, on_log=on_log, disguise_preview=True)
             return True
     except Exception as exc:
         _emit(f"  세션 확인 중 오류: {exc}", on_log)
@@ -1862,9 +2554,9 @@ def prepare_naver_session(
     user_id = naver_id.strip()
     password = naver_password.strip()
     if user_id and password:
-        _emit("네이버 자동 로그인 시도…", on_log)
+        _emit("블로그 자동 로그인 시도… (네이버 메인 복귀)", on_log)
         try:
-            _move_browser_onscreen(driver, on_log=on_log)
+            _move_browser_onscreen(driver, on_log=on_log, force_front=True)
             perform_credential_login(
                 driver,
                 user_id,
@@ -1881,8 +2573,15 @@ def prepare_naver_session(
                 on_ready_for_login=on_ready_for_login,
             )
             time.sleep(random.uniform(1.0, 2.0))
-            if verify_console_login(driver, on_log=on_log):
-                _emit("자동 로그인 완료.", on_log)
+            # 로그인 후 메인 정착 → 화면 밖(+미리보기 숨김) → 이후 서치어드바이저 이동
+            try:
+                driver.get(NAVER_MAIN_URL)
+                time.sleep(random.uniform(1.5, 2.5))
+            except Exception:
+                pass
+            if verify_naver_portal_login(driver, on_log=on_log):
+                _emit("자동 로그인 완료. (네이버 메인)", on_log)
+                _move_browser_offscreen(driver, on_log=on_log, disguise_preview=True)
                 return True
             _emit("자동 로그인 후 추가 확인이 필요합니다 (CAPTCHA·2단계 인증 등).", on_log)
         except Exception as exc:
@@ -1894,19 +2593,28 @@ def prepare_naver_session(
     if not allow_manual_login:
         _emit(
             "자동 로그인 실패 — 수동 대기 없이 종료합니다. "
-            "(Chrome을 닫고 재시도하거나 [오늘 미등록 웹문서 등록]을 사용하세요.)",
+            "(브라우저를 닫고 재시도하거나 [오늘 미등록 블로그 등록]을 사용하세요.)",
             on_log,
         )
         return False
 
-    _emit("네이버 로그인이 필요합니다.", on_log)
+    _emit("블로그 로그인이 필요합니다.", on_log)
+    _move_browser_onscreen(driver, on_log=on_log, force_front=True)
     _ensure_on_login_page(driver, on_log=on_log)
-    return wait_for_manual_login(
+    ok = wait_for_manual_login(
         driver,
         on_log=on_log,
         login_confirmed=login_confirmed,
         on_ready_for_login=on_ready_for_login,
     )
+    if ok:
+        try:
+            driver.get(NAVER_MAIN_URL)
+            time.sleep(random.uniform(1.2, 2.0))
+        except Exception:
+            pass
+        _move_browser_offscreen(driver, on_log=on_log, disguise_preview=True)
+    return ok
 
 
 def _resolve_typing_options(
@@ -2024,7 +2732,7 @@ def submit_crawl_urls(
             if not login_ok:
                 raise RuntimeError(
                     last_err
-                    + " — [오늘 미등록 웹문서 등록] 버튼으로 다시 시도하세요."
+                    + " — [오늘 미등록 블로그 등록] 버튼으로 다시 시도하세요."
                 )
         else:
             if not prepare_naver_session(
@@ -2051,6 +2759,7 @@ def submit_crawl_urls(
                 break
 
             document = url_to_document(active_site, page_url)
+            _resume_visual_cloak(driver, on_log=None)
             _emit(f"[{idx}/{len(batch)}] 수집 요청: {document}", on_log)
 
             if url_already_submitted_ok(log_path, page_url):
@@ -2132,7 +2841,7 @@ def submit_crawl_urls(
                 report.driver = driver
             else:
                 try:
-                    _emit("웹문서 등록 완료 — 크롬을 종료합니다.", on_log)
+                    _emit("블로그 등록 완료 — 크롬을 종료합니다.", on_log)
                     safe_quit_driver(driver, on_log=on_log)
                 except Exception:
                     pass

@@ -10,7 +10,7 @@ function siteHost(): string {
   try {
     return new URL(SITE.siteUrl).host;
   } catch {
-    return "jejumilgam.com";
+    return "cloudshelter.vercel.app";
   }
 }
 

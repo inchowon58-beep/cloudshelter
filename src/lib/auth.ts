@@ -4,7 +4,7 @@ import { ADMIN } from "./admin-config";
 
 const COOKIE = "jm_admin_session";
 const SECRET = new TextEncoder().encode(
-  process.env.ADMIN_JWT_SECRET || "jejumilgam-admin-secret-2026"
+  process.env.ADMIN_JWT_SECRET || "cloudshelter-admin-secret-2026"
 );
 
 export function validateCredentials(username: string, password: string): boolean {

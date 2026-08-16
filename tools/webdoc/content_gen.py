@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-"""문서 본문 생성 (템플릿) — 제주도감귤농장 뽕순이네.
-키워드 전달 시 강아지교배와 동일한 SeoPage 스키마(title/meta/OG/FAQ/hero)로
-제주감귤 판매용 상세 페이지를 생성합니다. 이미지는 3장.
+"""문서 본문 생성 (템플릿) — 강아지보호소 구름이네.
+키워드 전달 시 SeoPage 스키마(title/meta/OG/FAQ/hero)로
+파양입소·무료분양 상세 페이지를 생성합니다. 이미지는 3장.
 """
 
 from __future__ import annotations
@@ -15,18 +15,19 @@ from datetime import datetime
 from typing import Any, Dict, List
 from urllib.parse import quote
 
-BRAND = "뽕순이네"
-FARM = "제주도감귤농장"
-SITE_NAME = "제주도감귤농장 뽕순이네"
-PHONE = "010-2374-0401"
-LOCATION = "제주특별자치도 서귀포시"
-IMAGE_BASE = "https://image.cattery.co.kr/jejumilgam"
-IMAGE_COUNT = 13
+BRAND = "구름이네"
+FARM = "강아지보호소"
+SITE_NAME = "강아지보호소 구름이네"
+PHONE = "0505-300-7779"
+PHONE_TEL = "05053007779"
+LOCATION = "대한민국 전국"
+IMAGE_BASE = "https://image.cattery.co.kr/dogboho"
+IMAGE_COUNT = 79
 IMAGE_USE = 3  # 히어로 1 + 본문 2
 
 
 def _rng(keyword: str, idx: int) -> random.Random:
-    seed = int(hashlib.md5(f"{keyword}|{idx}|jm".encode()).hexdigest()[:8], 16)
+    seed = int(hashlib.md5(f"{keyword}|{idx}|cloud".encode()).hexdigest()[:8], 16)
     return random.Random(seed)
 
 
@@ -41,7 +42,7 @@ def slugify(keyword: str, idx: int) -> str:
     base = "".join(
         c if c.isalnum() or c in "-_" else "-" for c in keyword.lower().replace(" ", "-")
     )
-    base = base.strip("-")[:36] or "jejumilgam"
+    base = base.strip("-")[:36] or "cloudshelter"
     tail = f"{idx:02d}{''.join(random.choices(string.ascii_lowercase + string.digits, k=4))}"
     return f"{base}-{tail}"
 
@@ -60,44 +61,43 @@ def _page_to_summary(page: Dict[str, Any]) -> Dict[str, str]:
 
 def build_content(keyword: str, idx: int) -> Dict[str, Any]:
     rng = _rng(keyword, idx)
-    kw = keyword.strip() or "제주도감귤농장"
+    kw = keyword.strip() or "강아지보호소"
     heroes = [
-        "Farm-Direct Seogwipo Tangerines",
-        "100% Seogwipo Orchard · No Box Switch",
-        "Harvested Today · Delivered Fresh",
-        "Real Origin · Real Sugar Content",
+        "Nationwide Dog Shelter · No Euthanasia",
+        "Responsible Surrender & Free Adoption",
+        "From Hard Goodbyes to New Families",
+        "Cloud Shelter · Care Until Forever Home",
     ]
     line2_opts = [
-        "농장에서 직배송",
-        "서귀포 산지직송",
-        "박스갈이 없는 감귤",
-        "당일 선별 발송",
+        "파양입소 · 무료분양",
+        "안락사 없는 보호",
+        "책임 있는 새 가족 매칭",
+        "전국 상담 가능",
     ]
     bar_opts = [
-        "가짜 서귀포 감귤에 속지 마세요",
-        "농장주가 직접 포장해 보냅니다",
-        "3kg·5kg·10kg 실속 주문 가능",
-        "문제 시 100% 환불 보증",
+        "버리거나 직거래하지 마세요",
+        "전화 한 통으로 차분히 안내합니다",
+        "아이와 보호자 모두를 생각합니다",
+        "입소 후에도 근황을 나눠 드립니다",
     ]
     intro_h2 = [
-        f"{kw}, 왜 농장 직송이어야 할까요",
-        f"{kw} 주문 전 꼭 알아둘 점",
-        f"진짜 서귀포 맛을 위한 {kw} 안내",
-        f"{kw}와 산지직송의 기준",
+        f"{kw}, 왜 보호소 상담이 필요할까요",
+        f"{kw} 알아보기 전 꼭 확인할 점",
+        f"책임 있는 선택을 위한 {kw} 안내",
+        f"{kw}와 구름이네 보호 원칙",
     ]
 
-    # SEO title / meta — 강아지교배와 동일 패턴
-    title = f"{kw} | {FARM} {BRAND} 산지직송"
+    title = f"{kw} | {FARM} {BRAND} 파양입소·무료분양"
     if len(title) > 60:
-        title = f"{kw} | {FARM} 산지직송"
+        title = f"{kw} | {FARM} {BRAND}"
     meta_desc = (
-        f"{kw} 안내 — {FARM} {BRAND}는 서귀포 자체 농장에서 수확한 감귤을 농장주가 직배송합니다. "
-        f"박스갈이 없는 100% 서귀포 산지직송. 3kg·5kg·10kg 주문. 문의 {PHONE}."
+        f"{kw} 안내 — {FARM} {BRAND}는 강아지 파양입소와 무료분양을 책임 있게 상담합니다. "
+        f"안락사 없는 보호, 새 가족 매칭. 문의 {PHONE}."
     )
     if len(meta_desc) > 160:
         meta_desc = meta_desc[:157] + "..."
 
-    variants = ["직접", "꼼꼼히", "정직하게"]
+    variants = ["차분히", "꼼꼼히", "따뜻하게"]
     tone = variants[idx % len(variants)]
     h2_0 = intro_h2[idx % len(intro_h2)]
 
@@ -105,54 +105,51 @@ def build_content(keyword: str, idx: int) -> Dict[str, Any]:
         {
             "h2": h2_0,
             "paragraphs": [
-                f"{kw}를 검색하셨다면, 가장 먼저 확인할 것은 원산지와 유통 경로입니다. "
-                f"{FARM} {BRAND}는 제주 서귀포 농장에서 {tone} 수확·선별·포장하여 "
-                f"중간 유통 없이 집 앞으로 보냅니다.",
-                f"시중에는 타 지역 감귤을 서귀포 박스로만 바꿔 파는 '박스갈이' 피해가 이어지고 있습니다. "
-                f"{BRAND}는 농가 직배송만 진행하므로 포장재만 바꾼 가짜 서귀포 감귤과 분명히 다릅니다.",
-                f"당도와 신선도는 수확 직후가 가장 좋습니다. 전화({PHONE})로 수량·배송지를 남겨주시면 "
-                f"수확 일정에 맞춰 안내드리며, 가정용·선물용 모두 대응합니다.",
+                f"{kw}를 검색하셨다면, 가장 먼저 확인할 것은 아이의 안전과 이후 삶의 질입니다. "
+                f"{FARM} {BRAND}는 {tone} 파양 상담부터 무료분양 매칭까지 한곳에서 안내합니다.",
+                f"직거래·유기 대신 보호소 입소를 선택하시면, 아이가 안정된 환경에서 새 가족을 기다릴 수 있습니다. "
+                f"{BRAND}는 안락사 없는 보호를 원칙으로 합니다.",
+                f"상담은 전화({PHONE})로 가능합니다. 상황·일정·지역을 말씀해 주시면 "
+                f"입소·분양 절차를 차분히 안내드립니다.",
             ],
         },
         {
-            "h2": f"{BRAND}가 {kw}에서 지키는 판매 원칙",
+            "h2": f"{BRAND}가 {kw}에서 지키는 약속",
             "paragraphs": [
-                f"100% 서귀포 자체 농장 직영, 박스갈이 절대 불가, 맛·당도 선별이 {BRAND}의 기준입니다. "
-                f"{FARM}에서 자란 감귤만 출하합니다.",
-                f"농장 위치는 {LOCATION}입니다. 산지 직송 주문이 기본이며, "
-                f"문제 발생 시 100% 환불 보증 정책을 운영합니다.",
-                f"실속형 3kg, 가정용 5kg, 대용량 10kg, 선물용 세트를 준비했습니다. "
-                f"{kw}로 찾아오신 분이라면 유통 마진이 아닌 수확 당일의 맛으로 비교해 보세요.",
+                f"투명한 상담, 책임 있는 매칭, 입소 후 근황 안내가 {BRAND}의 기준입니다. "
+                f"충동 분양보다 아이와 가정의 궁합을 우선합니다.",
+                f"상담 범위는 {LOCATION}입니다. 방문이 어려운 경우 픽업·이동 일정도 함께 조율합니다.",
+                f"{kw}로 찾아오신 분이라면, 비용·절차·준비물을 먼저 확인하신 뒤 "
+                f"전화 상담을 권합니다. 문의 {PHONE}.",
             ],
         },
         {
-            "h2": f"{kw} 주문 방법과 다음 단계",
+            "h2": f"{kw} FAQ와 다음 단계",
             "paragraphs": [
-                f"{kw} 주문은 홈페이지 간편 신청 또는 {PHONE} 전화로 가능합니다. "
-                f"이름·연락처·주소·수량을 남겨주시면 농장에서 확인 후 연락드립니다.",
-                f"{BRAND}는 정직한 산지 표기와 농장주 직배송으로 신뢰를 쌓습니다. "
-                f"진짜 서귀포 감귤이 필요하시다면 지금 바로 주문해 주세요.",
+                f"{kw} 상담은 홈페이지 문의 또는 {PHONE} 전화로 가능합니다. "
+                f"파양입소·무료분양 모두 같은 번호로 연결됩니다.",
+                f"{BRAND}는 좋은 이별과 좋은 만남을 모두 돕습니다. 지금 바로 상담해 주세요.",
             ],
         },
     ]
     faqs = [
         {
-            "q": f"{kw} 주문은 어떻게 하나요?",
-            "a": f"사이트 하단 간편 주문 신청 또는 {PHONE} 전화로 접수합니다. "
-            f"상품(3kg·5kg·10kg·선물용)·수량·배송지를 알려주시면 {BRAND}가 확인 후 안내합니다.",
+            "q": f"{kw} 상담은 어떻게 하나요?",
+            "a": f"사이트 하단 문의 또는 {PHONE} 전화로 접수합니다. "
+            f"상황·희망 일정을 알려주시면 {BRAND}가 확인 후 안내합니다.",
         },
         {
-            "q": f"박스갈이 없는 {kw}인지 어떻게 확인하나요?",
-            "a": f"{BRAND}는 서귀포 자체 농장에서 직접 포장·발송합니다. "
-            f"중간 유통을 거치지 않으며 산지직송 보증·문제 시 환불 정책을 적용합니다.",
+            "q": f"파양입소와 무료분양 모두 가능한가요?",
+            "a": f"네. {BRAND}는 파양입소와 무료분양 매칭을 함께 안내합니다. "
+            f"아이 상태와 가정 환경에 맞춰 절차를 안내드립니다.",
         },
         {
-            "q": f"{kw} 배송은 얼마나 걸리나요?",
-            "a": "수확·선별 일정에 따라 달라지며, 주문 접수 후 전화로 출고 예정일을 안내드립니다. "
-            "신선도를 위해 당일·익일 출고를 원칙으로 합니다.",
+            "q": f"{kw} 전국에서 이용할 수 있나요?",
+            "a": "전국 상담이 가능합니다. 방문·픽업이 필요한 경우 일정 조율 후 진행합니다. "
+            f"문의 {PHONE}.",
         },
         {
-            "q": "제주도감귤농장 문의 전화번호는?",
+            "q": "구름이네 문의 전화번호는?",
             "a": f"{PHONE}입니다. {FARM} {BRAND}로 연락 주시면 됩니다.",
         },
     ]
@@ -164,19 +161,19 @@ def build_content(keyword: str, idx: int) -> Dict[str, Any]:
         "title": title,
         "metaDescription": meta_desc,
         "metaKeywords": (
-            f"{kw}, 제주도감귤농장, 서귀포감귤, 감귤직송, 감귤판매, 뽕순이네, "
-            f"박스갈이, 산지직송, 제주감귤, 밀감"
+            f"{kw}, 강아지보호소, 구름이네, 강아지파양, 파양입소, "
+            f"무료분양, 유기견보호소, 강아지입양, 강아지분양"
         ),
-        "h1": f"{kw} — {BRAND} 서귀포 산지직송 감귤",
+        "h1": f"{kw} — {BRAND} 파양입소·무료분양",
         "heroSubtitle": heroes[idx % len(heroes)],
-        "heroBadge": "100% 서귀포 산지직송",
+        "heroBadge": "안락사 없는 보호",
         "heroTitleLine1": kw,
         "heroTitleLine2": line2,
         "heroBar": bar_opts[idx % len(bar_opts)],
         "sections": sections,
         "faqs": faqs,
         "images": image_urls(IMAGE_USE, rng.randint(1, 99999)),
-        "ctaText": f"감귤 주문 문의 {PHONE} — {BRAND}",
+        "ctaText": f"파양입소·무료분양 문의 {PHONE} — {BRAND}",
         "createdAt": now,
         "updatedAt": now,
     }
@@ -191,7 +188,7 @@ def write_html(page: Dict[str, Any], site_url: str) -> str:
         sections += f"<section><h2>{sec['h2']}</h2>{ps}</section>"
         if i < 2 and i + 1 < len(imgs):
             sections += (
-                f'<figure><img src="{imgs[i+1]}" alt="{page["keyword"]} 감귤 {i+2}" '
+                f'<figure><img src="{imgs[i+1]}" alt="{page["keyword"]} 보호소 {i+2}" '
                 f'loading="lazy"/></figure>'
             )
     faqs = "".join(
@@ -224,7 +221,7 @@ def write_html(page: Dict[str, Any], site_url: str) -> str:
 <p>{page['heroSubtitle']}</p>
 {sections}
 <section><h2>자주 묻는 질문</h2>{faqs}</section>
-<p><a href="tel:01023740401">{page['ctaText']}</a></p>
+<p><a href="tel:{PHONE_TEL}">{page['ctaText']}</a></p>
 </article>
 </body>
 </html>"""
@@ -288,10 +285,6 @@ def generate_batch(
             if slug in existing.get("slugs", []):
                 existing["slugs"].remove(slug)
             existing.setdefault("slugs", []).insert(0, slug)
-        existing["entries"] = [
-            by_slug[s] for s in existing["slugs"] if s in by_slug
-        ] + [e for s, e in by_slug.items() if s not in existing["slugs"]]
-        # entries 순서를 slugs 기준으로
         existing["entries"] = [by_slug[s] for s in existing["slugs"] if s in by_slug]
         existing["updatedAt"] = datetime.utcnow().isoformat() + "Z"
         with open(idx_path, "w", encoding="utf-8") as f:

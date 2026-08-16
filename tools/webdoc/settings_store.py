@@ -10,7 +10,7 @@ from typing import Any, Dict
 from project_paths import webdoc_dir
 
 DEFAULT_VM_PATH = ""
-DEFAULT_SITE_URL = "https://jejumilgam.com"
+DEFAULT_SITE_URL = "https://cloudshelter.vercel.app"
 
 
 def settings_path() -> str:
@@ -25,7 +25,7 @@ def default_settings() -> Dict[str, Any]:
     return {
         "site_url": DEFAULT_SITE_URL,
         "out_dir": os.path.join(webdoc_dir(), "output"),
-        "keywords_text": "제주도감귤농장\n서귀포감귤\n제주감귤판매\n감귤직송\n산지직송감귤\n제주밀감",
+        "keywords_text": "강아지보호소\n강아지파양\n강아지파양입소\n무료분양\n강아지무료분양\n유기견보호소",
         "regions_text": "서울\n부산\n대구\n인천\n광주\n대전\n울산\n수원\n성남\n고양",
         "total_target": "500",
         "daily_limit": "30",

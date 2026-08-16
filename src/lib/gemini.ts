@@ -11,18 +11,18 @@ function buildPrompt(keyword: string): string {
 업체명은 반드시 '${SITE.farm}', '${SITE.brand}', '${SITE.name}'만 사용하세요.
 
 메인 키워드: ${keyword}
-핵심 키워드: 제주도감귤농장
+핵심 키워드: 강아지보호소
 전화: ${SITE.phone}
-농장 위치: ${SITE.location}
+서비스 범위: ${SITE.areaServed}
 
-주제: 서귀포 감귤 산지직송, 박스갈이 주의, 농장주 직배송, 고당도 감귤, 3kg/5kg/10kg 주문.
+주제: 강아지 파양입소, 무료분양, 안락사 없는 보호, 유기견 입양, 책임 매칭.
 
 아래 JSON만 출력. 설명 금지.
 
 {
-  "title": "60자 내. '{keyword}' + 제주도감귤농장 또는 뽕순이네 포함",
-  "metaDescription": "140~160자. '{keyword}', 제주도감귤농장, 서귀포, 산지직송, 전화 유도",
-  "metaKeywords": "{keyword}, 제주도감귤농장, 서귀포감귤, 감귤직송 등 8~12개",
+  "title": "60자 내. '{keyword}' + 강아지보호소 또는 구름이네 포함",
+  "metaDescription": "140~160자. '{keyword}', 파양입소, 무료분양, 전화 유도",
+  "metaKeywords": "{keyword}, 강아지보호소, 구름이네, 파양입소, 무료분양 등 8~12개",
   "h1": "키워드 '{keyword}' 포함 H1",
   "heroSubtitle": "영문 짧은 부제 또는 한영 혼합 한 문장",
   "sections": [
@@ -35,10 +35,10 @@ function buildPrompt(keyword: string): string {
     {"q": "질문2", "a": "답변 80자+"},
     {"q": "질문3", "a": "답변 80자+"}
   ],
-  "ctaText": "감귤 주문 전화 안내 문장"
+  "ctaText": "파양입소·무료분양 전화 안내 문장"
 }
 
-요구: 과장·허위 금지. AEO(질문형 FAQ). 본문에 '{keyword}'와 '제주도감귤농장' 자연 반복.`;
+요구: 과장·허위 금지. AEO(질문형 FAQ). 본문에 '{keyword}'와 '강아지보호소' 자연 반복.`;
 }
 
 export async function generateWithGemini(
@@ -67,7 +67,7 @@ export async function generateWithGemini(
     heroSubtitle: String(data.heroSubtitle || SITE.taglineEn),
     sections: Array.isArray(data.sections) ? data.sections : [],
     faqs: Array.isArray(data.faqs) ? data.faqs : [],
-    ctaText: String(data.ctaText || `${SITE.phone}로 감귤 주문 문의`),
+    ctaText: String(data.ctaText || `${SITE.phone}로 파양입소·무료분양 문의`),
   };
 }
 
@@ -84,10 +84,10 @@ export function assembleSeoPage(
     metaKeywords: partial.metaKeywords,
     h1: partial.h1,
     heroSubtitle: partial.heroSubtitle,
-    heroBadge: "100% 서귀포 산지직송",
+    heroBadge: "안락사 없는 보호",
     heroTitleLine1: partial.keyword,
-    heroTitleLine2: "농장에서 직배송",
-    heroBar: "박스갈이 없는 진짜 서귀포 감귤",
+    heroTitleLine2: "파양입소 · 무료분양",
+    heroBar: "책임 있는 보호와 새 가족 매칭",
     sections: partial.sections,
     faqs: partial.faqs,
     images: pickImages(3, Date.now() % 100000),

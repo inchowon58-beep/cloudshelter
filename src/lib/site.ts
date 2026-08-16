@@ -1,70 +1,42 @@
-/** 제주도감귤농장 뽕순이네 — 사이트 공통 설정 */
+/** 강아지보호소 구름이네 — 사이트 공통 설정 */
 
 export const SITE = {
-  name: "제주도감귤농장 뽕순이네",
-  brand: "뽕순이네",
-  farm: "제주도감귤농장",
-  tagline: "제주도 서귀포 농장에서 농장주가 직접 보내는 진짜 감귤",
-  taglineEn: "Farm-Direct Seogwipo Tangerines",
+  name: "강아지보호소 구름이네",
+  brand: "구름이네",
+  farm: "강아지보호소",
+  tagline: "안락사 없는 보호, 파양입소부터 무료분양까지",
+  taglineEn: "Dog Shelter · Surrender & Free Adoption",
   description:
-    "가짜 서귀포 감귤(박스갈이)에 속지 마세요. 제주도감귤농장 뽕순이네는 서귀포 자체 농장에서 수확한 감귤을 농장주가 직배송합니다. 100% 서귀포 산지직송 보증. 문의 010-2374-0401.",
+    "강아지보호소 구름이네는 강아지 파양입소와 무료분양을 안내하는 보호소입니다. 피치 못한 파양 상담부터 새 가족 매칭까지 책임집니다. 문의 0505-300-7779.",
   keywords: [
-    "제주도감귤농장",
-    "서귀포감귤",
-    "제주감귤",
-    "감귤직송",
-    "서귀포산지직송",
-    "박스갈이",
-    "뽕순이네",
-    "감귤농장",
-    "밀감",
-    "제주밀감",
+    "강아지보호소",
+    "구름이네",
+    "강아지파양",
+    "강아지파양입소",
+    "무료분양",
+    "강아지무료분양",
+    "유기견보호소",
+    "강아지입양",
+    "반려견파양",
+    "강아지입소",
+    "강아지분양",
+    "유기견입양",
   ],
-  phone: "010-2374-0401",
-  phoneTel: "tel:01023740401",
-  phoneDisplay: "010-2374-0401",
-  logo: "https://image.cattery.co.kr/jejumilgam/01.webp",
-  imageBase: "https://image.cattery.co.kr/jejumilgam",
-  imageCount: 13,
-  location: "제주특별자치도 서귀포시",
-  address: "제주특별자치도 서귀포시",
-  domain: "jejumilgam",
-  siteUrl: process.env.NEXT_PUBLIC_SITE_URL || "https://jejumilgam.vercel.app",
+  phone: "0505-300-7779",
+  phoneTel: "tel:05053007779",
+  phoneDisplay: "0505-300-7779",
+  logo: "https://image.cattery.co.kr/dogboho/01.webp",
+  imageBase: "https://image.cattery.co.kr/dogboho",
+  imageCount: 79,
+  location: "대한민국 전국",
+  address: "전국 상담 · 방문 예약제",
+  areaServed: "대한민국 전국",
+  domain: "cloudshelter",
+  siteUrl: process.env.NEXT_PUBLIC_SITE_URL || "https://cloudshelter.vercel.app",
+  infocsUrl: "https://www.infocs.co.kr/",
 } as const;
 
-export const CTA_LABEL = "진짜 서귀포 감귤 주문하기";
-
-export const PRODUCTS = [
-  {
-    id: "3kg",
-    name: "실속형 3kg",
-    weight: "3kg",
-    desc: "혼자 또는 소가족이 즐기기 좋은 분량",
-    badge: "인기",
-    image: 3,
-  },
-  {
-    id: "5kg",
-    name: "추천 5kg",
-    weight: "5kg",
-    desc: "가정용으로 가장 많이 찾는 사이즈",
-    badge: "BEST",
-    image: 5,
-  },
-  {
-    id: "10kg",
-    name: "대용량 10kg",
-    weight: "10kg",
-    desc: "온 가족·지인 나눔용 실속 박스",
-    badge: "실속",
-    image: 8,
-  },
-  {
-    id: "gift",
-    name: "선물용 세트",
-    weight: "선물포장",
-    desc: "명절·감사 선물용 프리미엄 포장",
-    badge: "선물",
-    image: 10,
-  },
-] as const;
+export const CTA_LABEL = "파양입소·무료분양 문의";
+export const CTA_SURRENDER = "파양입소";
+export const CTA_ADOPT = "무료분양문의";
+export const CTA_BUILD = "자동화사이트구축/렌탈문의";

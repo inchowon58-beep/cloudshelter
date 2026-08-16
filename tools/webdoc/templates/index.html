@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>제주도감귤농장 웹문서 생성기</title>
+  <title>강아지보호소 구름이네 SEO·블로그 등록기</title>
   <style>
     :root {
       --bg: #fffaf5;
@@ -115,11 +115,11 @@
   <div class="wrap">
     <header class="top">
       <div>
-        <h1>제주도감귤농장 웹문서 생성기</h1>
-        <p class="sub">키워드 전달 → SEO·AEO·OG 상세페이지 발행 · 이미지 3장 · Blob·IndexNow·네이버 등록</p>
+        <h1>강아지보호소 구름이네 SEO·블로그 등록기</h1>
+        <p class="sub">키워드 전달 → SEO·AEO·OG 상세페이지 발행 · 이미지 3장 · Blob·IndexNow·블로그 등록</p>
       </div>
       <div class="top-actions">
-        <span class="badge">감귤판매 SEO</span>
+        <span class="badge">파양·무료분양 SEO</span>
         <button type="button" class="ghost" id="btn_quit_top">프로그램 종료</button>
       </div>
     </header>
@@ -127,18 +127,18 @@
     <div class="tabs">
       <button class="tab active" data-tab="pub">키워드·발행</button>
       <button class="tab" data-tab="sch">스케줄</button>
-      <button class="tab" data-tab="nv">웹문서 등록</button>
+      <button class="tab" data-tab="nv">블로그 등록</button>
       <button class="tab" data-tab="log">로그·URL</button>
     </div>
 
     <section id="pub" class="panel active">
       <div class="grid2">
         <div>
-          <label>키워드 (한 줄에 하나) — 예: 제주도감귤농장</label>
+          <label>키워드 (한 줄에 하나) — 예: 강아지보호소</label>
           <textarea id="keywords_text"></textarea>
         </div>
         <div>
-          <label>지역 (한 줄에 하나) → 서울제주도감귤농장</label>
+          <label>지역 (한 줄에 하나) → 수원강아지보호소</label>
           <textarea id="regions_text"></textarea>
         </div>
       </div>
@@ -168,7 +168,7 @@
         </div>
       </div>
       <label class="check"><input type="checkbox" id="do_indexnow" /> 발행 후 IndexNow 전송</label>
-      <label class="check"><input type="checkbox" id="open_chrome_after" /> 발행 후 결과 URL Chrome으로 열기</label>
+      <label class="check"><input type="checkbox" id="open_chrome_after" /> 발행 후 결과 URL 브라우저로 열기</label>
       <div class="status" id="queue_summary">큐: —</div>
       <div class="row">
         <button id="btn_build_queue">큐 만들기 / 갱신</button>
@@ -176,7 +176,7 @@
         <button class="secondary" id="btn_save">설정 저장</button>
         <button class="secondary" id="btn_stop">중지 요청</button>
       </div>
-      <p class="hint">exe 폴더만 다른 VM으로 복사 가능 · Chrome 필요 · Blob 토큰은 [웹문서 등록] 탭</p>
+      <p class="hint">exe 폴더만 다른 PC로 복사 가능 · Blob 토큰은 [블로그 등록] 탭</p>
     </section>
 
     <section id="sch" class="panel">
@@ -193,7 +193,7 @@
       <p class="hint">
         지정 시각이 이미 지난 뒤에 스케줄을 켜면 <b>오늘은 건너뛰고 내일</b>부터 자동 실행합니다.
         오늘 분이 필요하면 [오늘 배치 지금 실행]을 누르세요.
-        UI 창만 닫아도 스케줄 ON이면 잠시 후 다시 열립니다. 완전 종료는 [프로그램 종료].
+        브라우저 탭만 닫아도 백엔드는 유지됩니다. 완전 종료는 [프로그램 종료].
         PC 절전 시에는 자동 발행이 멈출 수 있습니다.
       </p>
     </section>
@@ -202,9 +202,9 @@
       <label class="check"><input type="checkbox" id="auto_naver_register" /> 발행 후 인포씨에서 작업요청</label>
       <label>Blob 토큰 (웹반영)</label>
       <input id="blob_token" type="password" />
-      <label>네이버 아이디</label>
+      <label>블로그 아이디</label>
       <input id="naver_id" />
-      <label>네이버 비밀번호</label>
+      <label>블로그 비밀번호</label>
       <input id="naver_password" type="password" />
       <label>등록 사이트 URL</label>
       <input id="naver_site" />
@@ -224,14 +224,16 @@
           <input id="naver_delay_max" />
         </div>
       </div>
-      <div class="status" id="pending_status">미등록 웹문서: —</div>
+      <div class="status" id="pending_status">미등록 블로그: —</div>
       <div class="row">
         <button id="btn_save2">설정 저장</button>
-        <button id="btn_naver_pending">오늘 미등록 웹문서 등록 요청</button>
+        <button id="btn_naver_pending">오늘 미등록 블로그 등록 요청</button>
       </div>
       <p class="hint">
-        발행은 됐는데 네이버 등록만 실패했을 때 [오늘 미등록 웹문서 등록 요청]을 누르세요.
-        로그인 실패 시 Chrome을 닫고 최대 3회 자동 재시도합니다.
+        발행은 됐는데 블로그 등록만 실패했을 때 [오늘 미등록 블로그 등록 요청]을 누르세요.
+        로그인 실패 시 등록용 브라우저를 닫고 최대 3회 자동 재시도합니다.
+        로그인만 화면에서 → 화면 밖 이동 → 등록 준비 완료 후 미리보기를 NAVER로 가립니다.
+        (목록/입력창 로딩 중 가림은 등록 오류를 유발해 준비 후에만 적용)
       </p>
     </section>
 
@@ -242,7 +244,7 @@
       <label>일반 로그</label>
       <div class="log" id="logbox"></div>
       <div class="admin-box">
-        <label>네이버 상세 로그 (관리자)</label>
+        <label>블로그 상세 로그 (관리자)</label>
         <div class="row" style="margin-top:0">
           <input id="admin_password" type="password" placeholder="관리자 비밀번호" style="max-width:220px" />
           <button id="btn_admin_unlock" class="secondary">잠금 해제</button>
@@ -305,11 +307,11 @@
       $("queue_summary2").textContent = st.queue.summary;
       $("schedule_status").textContent = st.schedule_status;
       $("job_status").textContent = st.status + (st.running ? " (실행 중)" : "");
-      $("pending_status").textContent = `미등록 웹문서: ${st.pending_naver_count ?? 0}건`;
+      $("pending_status").textContent = `미등록 블로그: ${st.pending_naver_count ?? 0}건`;
       $("logbox").textContent = (st.logs || []).join("\n");
       $("logbox").scrollTop = $("logbox").scrollHeight;
       if (st.admin_unlocked) {
-        $("naver_logbox").textContent = (st.naver_logs || []).join("\n") || "(네이버 로그 없음)";
+        $("naver_logbox").textContent = (st.naver_logs || []).join("\n") || "(블로그 로그 없음)";
         $("naver_logbox").scrollTop = $("naver_logbox").scrollHeight;
       } else {
         $("naver_logbox").textContent = "관리자 인증 후 표시됩니다.";

@@ -203,7 +203,7 @@ def sync_pages_dir_to_blob(
     if not token:
         return (
             False,
-            "BLOB_READ_WRITE_TOKEN 없음 — [웹문서 등록] 탭 또는 settings.json 에 blob_token 을 넣으세요.",
+            "BLOB_READ_WRITE_TOKEN 없음 — [블로그 등록] 탭 또는 settings.json 에 blob_token 을 넣으세요.",
         )
     if not os.path.isdir(pages_dir):
         return False, f"pages 폴더 없음: {pages_dir}"

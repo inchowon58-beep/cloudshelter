@@ -11,13 +11,13 @@ export default function ArticlesScroll({ pages }: { pages: SeoPageSummary[] }) {
     return (
       <section id="articles" className="section bg-white/50">
         <div className="container">
-          <p className="text-sm font-bold text-[var(--orange)]">Knowledge</p>
+          <p className="text-sm font-bold text-[var(--sky)]">Knowledge</p>
           <h2 className="mt-2 text-2xl font-extrabold text-[var(--navy)] md:text-3xl">
-            <Link href="/guide" className="hover:text-[var(--orange)]">
-              제주도감귤농장 안내글
+            <Link href="/guide" className="hover:text-[var(--coral)]">
+              지역별 보호소 안내
             </Link>
           </h2>
-          <p className="mt-3 text-[var(--muted)]">발행된 안내 글이 여기에 노출됩니다.</p>
+          <p className="mt-3 text-[var(--muted)]">발행된 지역 안내 글이 여기에 노출됩니다.</p>
         </div>
       </section>
     );
@@ -26,15 +26,15 @@ export default function ArticlesScroll({ pages }: { pages: SeoPageSummary[] }) {
   return (
     <section id="articles" className="section bg-white/50">
       <div className="container">
-        <p className="text-sm font-bold text-[var(--orange)]">Published Guides</p>
+        <p className="text-sm font-bold text-[var(--sky)]">Published Guides</p>
         <h2 className="mt-2 text-2xl font-extrabold text-[var(--navy)] md:text-3xl">
-          <Link href="/guide" className="hover:text-[var(--orange)]">
-            제주도감귤농장 안내글
+          <Link href="/guide" className="hover:text-[var(--coral)]">
+            지역별 보호소 안내
           </Link>
         </h2>
         <p className="mt-3 text-[var(--muted)]">
           최신 {MAIN_PREVIEW}건 —{" "}
-          <Link href="/guide" className="underline hover:text-[var(--orange)]">
+          <Link href="/guide" className="underline hover:text-[var(--coral)]">
             전체 목록 보기
           </Link>
         </p>
@@ -43,13 +43,13 @@ export default function ArticlesScroll({ pages }: { pages: SeoPageSummary[] }) {
             <Link
               key={p.slug}
               href={pagePath(p.slug)}
-              className="flex gap-4 rounded-2xl border border-[var(--line)] bg-white px-5 py-4 transition hover:border-[var(--orange)] hover:shadow-[0_12px_30px_rgba(15,23,42,0.06)]"
+              className="soft-card flex gap-4 px-5 py-4 transition hover:border-[var(--sky)] hover:shadow-[0_12px_30px_rgba(28,36,52,0.08)]"
             >
-              <span className="w-8 shrink-0 text-lg font-bold text-[var(--orange)]">
+              <span className="w-8 shrink-0 text-lg font-bold text-[var(--coral)]">
                 {String(i + 1).padStart(2, "0")}
               </span>
               <div>
-                <span className="text-[0.68rem] uppercase tracking-[0.16em] text-[var(--orange)]">
+                <span className="text-[0.68rem] uppercase tracking-[0.16em] text-[var(--sky)]">
                   {p.keyword}
                 </span>
                 <h3 className="mt-1 text-xl font-bold text-[var(--navy)]">{p.h1}</h3>

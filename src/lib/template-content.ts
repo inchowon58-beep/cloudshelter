@@ -4,17 +4,17 @@ import type { SeoPage } from "./seo-pages";
 import { slugifyKeyword } from "./seo-pages";
 
 const HERO = [
-  "Farm-Direct Seogwipo Tangerines",
-  "100% Seogwipo Orchard · No Box Switch",
-  "Harvested Today · Delivered Fresh",
-  "Real Sugar Content · Real Origin",
+  "Nationwide Dog Shelter · No Euthanasia",
+  "Responsible Surrender & Free Adoption",
+  "From Hard Goodbyes to New Families",
+  "Cloud Shelter · Care Until Forever Home",
 ];
 
 const INTRO_H2 = [
-  "{kw}, 왜 농장 직송이어야 할까요",
-  "{kw} 주문 전 꼭 알아둘 점",
-  "진짜 서귀포 맛을 위한 {kw} 안내",
-  "{kw}와 산지직송의 기준",
+  "{kw}, 왜 보호소 상담이 필요할까요",
+  "{kw} 알아보기 전 꼭 확인할 점",
+  "책임 있는 선택을 위한 {kw} 안내",
+  "{kw}와 구름이네 보호 원칙",
 ];
 
 function hash(s: string): number {
@@ -29,59 +29,59 @@ function pick<T>(arr: T[], seed: number): T {
 
 export function generateTemplateContent(keyword: string, pageIndex = 1): SeoPage {
   const seed = hash(`${keyword}|${pageIndex}|${SITE.brand}`);
-  const kw = keyword.trim() || "제주도감귤농장";
+  const kw = keyword.trim() || "강아지보호소";
   const phone = SITE.phone;
   const brand = SITE.brand;
   const farm = SITE.farm;
 
-  const title = `${kw} | ${farm} ${brand} 산지직송`;
-  const metaDescription = `${kw} 안내 — ${farm} ${brand}는 서귀포 자체 농장에서 수확한 감귤을 농장주가 직배송합니다. 박스갈이 없는 100% 서귀포 산지직송. 문의 ${phone}.`;
-  const h1 = `${kw} — ${brand} 서귀포 산지직송 감귤`;
+  const title = `${kw} | ${farm} ${brand} 파양입소·무료분양`;
+  const metaDescription = `${kw} 안내 — ${farm} ${brand}는 강아지 파양입소와 무료분양을 책임 있게 상담합니다. 안락사 없는 보호, 새 가족 매칭. 문의 ${phone}.`;
+  const h1 = `${kw} — ${brand} 파양입소·무료분양`;
 
   const sections = [
     {
       h2: pick(INTRO_H2, seed).replace(/\{kw\}/g, kw),
       paragraphs: [
-        `${kw}를 찾을 때 가장 중요한 것은 원산지와 유통 경로입니다. ${farm} ${brand}는 제주 서귀포 농장에서 직접 수확·선별·포장하여, 중간 유통 없이 집 앞으로 보냅니다.`,
-        `시중에는 타 지역 감귤을 서귀포 박스로만 바꿔 파는 '박스갈이' 피해가 이어지고 있습니다. ${brand}는 농가 직배송만 진행하므로 포장재만 바꾼 가짜 서귀포 감귤과 분명히 다릅니다.`,
-        `당도와 신선도는 수확 직후가 가장 좋습니다. 전화(${phone})로 수량·배송지를 남겨주시면 수확 일정에 맞춰 안내드립니다.`,
+        `${kw}를 찾을 때 가장 중요한 것은 아이의 안전과 이후 삶의 질입니다. ${farm} ${brand}는 피치 못한 파양 상담부터 무료분양 매칭까지 한곳에서 안내합니다.`,
+        `직거래·유기 대신 보호소 입소를 선택하시면, 아이가 안정된 환경에서 새 가족을 기다릴 수 있습니다. ${brand}는 안락사 없는 보호를 원칙으로 합니다.`,
+        `상담은 전화(${phone})로 가능합니다. 상황·일정·지역을 말씀해 주시면 입소·분양 절차를 차분히 안내드립니다.`,
       ],
     },
     {
-      h2: `${brand}가 ${kw}에서 지키는 원칙`,
+      h2: `${brand}가 ${kw}에서 지키는 약속`,
       paragraphs: [
-        `100% 서귀포 자체 농장 직영, 박스갈이 절대 불가, 맛·당도 선별이 ${brand}의 기준입니다. ${farm}에서 자란 감귤만 출하합니다.`,
-        `농장 위치는 ${SITE.location}입니다. 방문 상담보다 산지 직송 주문이 기본이며, 문제 발생 시 100% 환불 보증 정책을 운영합니다.`,
-        `3kg·5kg·10kg 실속형과 선물용 세트를 준비했습니다. ${kw} 키워드로 검색하신 분이라면, 유통 마진이 아닌 수확 당일의 맛으로 비교해 보세요.`,
+        `투명한 상담, 책임 있는 매칭, 입소 후 근황 안내가 ${brand}의 기준입니다. 충동 분양보다 아이와 가정의 궁합을 우선합니다.`,
+        `${SITE.areaServed} 범위에서 상담이 가능하며, 방문이 어려운 경우 픽업·이동 일정도 함께 조율합니다.`,
+        `${kw}로 검색하신 분이라면, 비용·절차·준비물을 먼저 확인하신 뒤 전화 상담을 권합니다. 문의 ${phone}.`,
       ],
     },
     {
       h2: `${kw} FAQ와 다음 단계`,
       paragraphs: [
-        `${kw} 주문은 홈페이지 간편 신청 또는 ${phone} 전화로 가능합니다. 이름·연락처·주소·수량을 남겨주시면 농장에서 확인 후 연락드립니다.`,
-        `${brand}는 정직한 산지 표기와 농장주 직배송으로 신뢰를 쌓습니다. 진짜 서귀포 감귤이 필요하시다면 지금 바로 주문해 주세요.`,
+        `${kw} 상담은 홈페이지 문의 또는 ${phone} 전화로 가능합니다. 파양입소·무료분양 모두 같은 번호로 연결됩니다.`,
+        `${brand}는 좋은 이별과 좋은 만남을 모두 돕습니다. 지금 바로 상담해 주세요.`,
       ],
     },
   ];
 
   const faqs = [
     {
-      q: `${kw} 주문은 어떻게 하나요?`,
-      a: `사이트 하단 간편 주문 신청 또는 ${phone} 전화로 접수합니다. 상품·수량·배송지를 알려주시면 ${brand}가 확인 후 안내합니다.`,
+      q: `${kw} 상담은 어떻게 하나요?`,
+      a: `사이트 하단 문의 또는 ${phone} 전화로 접수합니다. 상황·희망 일정을 알려주시면 ${brand}가 확인 후 안내합니다.`,
     },
     {
-      q: `박스갈이 없는 ${kw}인지 어떻게 확인하나요?`,
-      a: `${brand}는 서귀포 자체 농장에서 직접 포장·발송합니다. 중간 유통 업자를 거치지 않으며, 산지직송 보증·문제 시 환불 정책을 적용합니다.`,
+      q: `파양입소와 무료분양 모두 가능한가요?`,
+      a: `네. ${brand}는 파양입소와 무료분양 매칭을 함께 안내합니다. 아이 상태와 가정 환경에 맞춰 절차를 안내드립니다.`,
     },
     {
-      q: `배송은 얼마나 걸리나요?`,
-      a: `수확·선별 일정에 따라 달라지며, 주문 접수 후 전화로 출고 예정일을 안내드립니다. 신선도를 위해 당일·익일 출고를 원칙으로 합니다.`,
+      q: `전국에서 이용할 수 있나요?`,
+      a: `전국 상담이 가능합니다. 방문·픽업이 필요한 경우 일정 조율 후 진행합니다. 문의 ${phone}.`,
     },
   ];
 
   const tweak = seed % 3;
   if (tweak === 1) {
-    sections[0].paragraphs[0] = sections[0].paragraphs[0].replace("직접", "꼼꼼히");
+    sections[0].paragraphs[0] = sections[0].paragraphs[0].replace("안내합니다", "함께합니다");
   } else if (tweak === 2) {
     sections[1].paragraphs[0] = sections[1].paragraphs[0].replace("기준입니다", "약속입니다");
   }
@@ -92,17 +92,17 @@ export function generateTemplateContent(keyword: string, pageIndex = 1): SeoPage
     keyword: kw,
     title,
     metaDescription,
-    metaKeywords: `${kw}, 제주도감귤농장, 서귀포감귤, 감귤직송, 뽕순이네, 박스갈이, 산지직송, 제주감귤`,
+    metaKeywords: `${kw}, 강아지보호소, 구름이네, 강아지파양, 파양입소, 무료분양, 유기견보호소, 강아지입양`,
     h1,
     heroSubtitle: pick(HERO, seed),
-    heroBadge: "100% 서귀포 산지직송",
+    heroBadge: "안락사 없는 보호",
     heroTitleLine1: kw,
-    heroTitleLine2: "농장에서 직배송",
-    heroBar: "박스갈이 없는 진짜 서귀포 감귤",
+    heroTitleLine2: "파양입소 · 무료분양",
+    heroBar: "책임 있는 보호와 새 가족 매칭",
     sections,
     faqs,
     images: pickImages(3, seed),
-    ctaText: `감귤 주문 문의 ${phone} — ${brand}`,
+    ctaText: `파양입소·무료분양 문의 ${phone} — ${brand}`,
     createdAt: now,
     updatedAt: now,
   };

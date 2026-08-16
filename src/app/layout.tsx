@@ -9,7 +9,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   metadataBase: new URL(SITE.siteUrl),
   title: {
-    default: `${SITE.name} | 제주도감귤농장 서귀포 산지직송`,
+    default: `${SITE.name} | 파양입소 · 무료분양`,
     template: `%s | ${SITE.brand}`,
   },
   description: SITE.description,
@@ -23,20 +23,20 @@ export const metadata: Metadata = {
     locale: "ko_KR",
     url: SITE.siteUrl,
     siteName: SITE.name,
-    title: `${SITE.name} | 제주도감귤농장 서귀포 산지직송`,
+    title: `${SITE.name} | 파양입소 · 무료분양`,
     description: SITE.description,
     images: [
       {
         url: SITE.logo,
         width: 1200,
         height: 630,
-        alt: `${SITE.name} 제주도감귤농장`,
+        alt: `${SITE.name}`,
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: `${SITE.name} | 제주도감귤농장 서귀포 산지직송`,
+    title: `${SITE.name} | 파양입소 · 무료분양`,
     description: SITE.description,
     images: [SITE.logo],
   },
@@ -46,12 +46,12 @@ export const metadata: Metadata = {
     googleBot: { index: true, follow: true, "max-image-preview": "large" },
   },
   other: {
-    "msapplication-TileColor": "#FF6B00",
+    "msapplication-TileColor": "#5B8DEF",
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#FF6B00",
+  themeColor: "#5B8DEF",
   width: "device-width",
   initialScale: 1,
 };
@@ -64,6 +64,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <link rel="preconnect" href="https://cdn.jsdelivr.net" />
         <link rel="preconnect" href="https://image.cattery.co.kr" />
+        <link rel="preconnect" href="https://cdn.sanity.io" />
         <link
           rel="stylesheet"
           href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"

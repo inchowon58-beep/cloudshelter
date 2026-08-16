@@ -40,7 +40,7 @@ export default function AdminClient() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
-  const [keyword, setKeyword] = useState("제주도감귤농장");
+  const [keyword, setKeyword] = useState("강아지보호소");
   const [mode, setMode] = useState<"gemini" | "template">("template");
   const [apiKey, setApiKey] = useState("");
   const [publishing, setPublishing] = useState(false);
@@ -56,7 +56,7 @@ export default function AdminClient() {
   const [orderTotalPages, setOrderTotalPages] = useState(1);
 
   function absolutePageUrl(path: string) {
-    const base = (process.env.NEXT_PUBLIC_SITE_URL || "https://jejumilgam.com").replace(
+    const base = (process.env.NEXT_PUBLIC_SITE_URL || "https://cloudshelter.vercel.app").replace(
       /\/$/,
       ""
     );
@@ -200,7 +200,7 @@ export default function AdminClient() {
           <p className="text-sm font-bold text-[var(--orange)]">Admin</p>
           <h1 className="mt-2 text-3xl font-extrabold text-[var(--navy)]">관리자 로그인</h1>
           <p className="mt-2 text-sm text-[var(--muted)]">
-            제주도감귤농장 뽕순이네 · 주문·SEO 발행 관리
+            강아지보호소 구름이네 · 문의·SEO 발행 관리
           </p>
           <label className="mt-6 block text-sm font-semibold">
             아이디
@@ -347,7 +347,7 @@ export default function AdminClient() {
                 className="mt-1 w-full rounded-xl border border-[var(--line)] bg-white px-3 py-2"
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
-                placeholder="예: 제주도감귤농장"
+                placeholder="예: 강아지보호소"
                 required
               />
             </label>

@@ -126,9 +126,9 @@ def register_urls(
     if not urls:
         return False, "등록할 URL이 없습니다."
     if not naver_site.strip():
-        return False, "서치어드바이저 사이트 URL이 없습니다."
+        return False, "등록 사이트 URL이 없습니다."
     if not (naver_id.strip() and naver_password.strip()):
-        return False, "네이버 아이디·비밀번호가 필요합니다."
+        return False, "블로그 아이디·비밀번호가 필요합니다."
 
     def log(msg: str) -> None:
         if on_log:
@@ -151,7 +151,7 @@ def register_urls(
 
         _patch_uc_chrome_lifecycle()
     except Exception as e:
-        return False, f"네이버 모듈 로드 실패: {e}"
+        return False, f"블로그 모듈 로드 실패: {e}"
 
     try:
         append_urls_file(urls)
@@ -189,7 +189,7 @@ def register_urls(
         except Exception:
             pass
         msg = (
-            f"네이버 등록 완료 — 성공 {report.success_count}건, "
+            f"블로그 등록 완료 — 성공 {report.success_count}건, "
             f"실패 {report.fail_count}건, 스킵 {len(report.skipped)}건 · 크롬 종료"
         )
         return report.success_count > 0 or report.fail_count == 0, msg
@@ -200,4 +200,4 @@ def register_urls(
                     safe_quit_driver(report.driver, on_log=log)
             except Exception:
                 pass
-        return False, f"네이버 등록 오류: {e}"
+        return False, f"블로그 등록 오류: {e}"

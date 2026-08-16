@@ -1,48 +1,24 @@
-# 제주도감귤농장 뽕순이네 (jejumilgam)
+# 강아지보호소 구름이네 (cloudshelter)
 
-서귀포 산지직송 감귤 랜딩 + SEO 발행 + 관리자 주문 확인.
+Next.js 15 기반 강아지 파양입소 · 무료분양 보호소 사이트입니다.
 
-## 개발
+## 시작
 
 ```bash
 npm install
 npm run dev
 ```
 
-- 사이트: http://localhost:3000
-- 관리자: http://localhost:3000/admin
+## 주요 설정
 
-## 환경변수
-
-`.env.example` 참고 → `.env.local` 복사 후 설정
-
-- `BLOB_READ_WRITE_TOKEN` — Vercel 배포 시 SEO/주문 저장용
-- `NEXT_PUBLIC_SITE_URL` — 실제 도메인
-- `GEMINI_API_KEY` — 관리자 Gemini 발행(선택)
-
-## 웹문서 발행기
-
-```bash
-cd tools/webdoc
-# 개발 실행 (콘솔 없음)
-제주도감귤농장_웹문서_실행.bat
-
-# 실행파일 빌드 (--windowed, 검은 콘솔 없음)
-build_exe.bat
-```
-
-빌드 결과: `tools/webdoc/dist/제주도감귤농장웹문서생성기/제주도감귤농장웹문서생성기.exe`
-
-키워드 입력 시 강아지교배와 동일한 SeoPage 형식(title/meta/OG/Twitter/FAQ/히어로)으로
-제주감귤 판매용 `/guide` 상세페이지를 생성합니다. 이미지는 3장(히어로+본문2).
-
-## 빌드
-
-```bash
-npm run build
-npm start
-```
+- `src/lib/site.ts` — 업체명, 전화(0505-300-7779), CDN, 도메인
+- 이미지 CDN: `https://image.cattery.co.kr/dogboho/`
+- 히어로 영상: `public/videos/hero.mp4` (Mixkit corgi)
+- SEO 페이지: `/guide/[slug]` + `tools/webdoc` 발행기
+- 하단 CTA: 파양입소 / 무료분양문의 + 자동화사이트구축/렌탈문의 → [infocs.co.kr](https://www.infocs.co.kr/)
 
 ## GitHub
 
-https://github.com/inchowon58-beep/jejumilgam.git
+```
+https://github.com/inchowon58-beep/cloudshelter.git
+```

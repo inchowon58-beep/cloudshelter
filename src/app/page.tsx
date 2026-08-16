@@ -1,13 +1,12 @@
 import Hero from "./components/Hero";
-import Problem from "./components/Problem";
-import Philosophy from "./components/Philosophy";
-import Products from "./components/Products";
+import About from "./components/About";
+import Pets from "./components/Pets";
+import Process from "./components/Process";
 import Reviews from "./components/Reviews";
-import Concept from "./components/Concept";
 import Gallery from "./components/Gallery";
 import FAQ from "./components/FAQ";
 import ArticlesScroll from "./components/ArticlesScroll";
-import OrderForm from "./components/OrderForm";
+import ContactForm from "./components/ContactForm";
 import { listPageSummaries } from "@/lib/seo-pages";
 
 export const dynamic = "force-dynamic";
@@ -23,15 +22,14 @@ export default async function HomePage() {
   return (
     <>
       <Hero />
-      <Problem />
-      <Philosophy />
-      <Products />
+      <About />
+      <Pets />
+      <Process />
       <Reviews />
-      <Concept />
       <Gallery />
       <FAQ />
       <ArticlesScroll pages={pages} />
-      <OrderForm />
+      <ContactForm />
     </>
   );
 }

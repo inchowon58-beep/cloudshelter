@@ -7,6 +7,13 @@ import { listPageSummaries, readPage } from "@/lib/seo-pages";
 import { galleryAlt } from "@/lib/images";
 import { faqJsonLd } from "@/lib/faq-data";
 import GuideHeroThumb from "@/app/components/GuideHeroThumb";
+import NearbyRegionsSection from "@/app/components/NearbyRegionsSection";
+import NearbyStationsSection from "@/app/components/NearbyStationsSection";
+import {
+  getNearbyStationLinks,
+  getNearbySubRegionLinks,
+  regionFromPageKeyword,
+} from "@/lib/nearby-regions";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -68,6 +75,12 @@ export default async function GuidePage({ params }: Props) {
 
   const pageUrl = `${SITE.siteUrl.replace(/\/$/, "")}/guide/${encodeURIComponent(page.slug)}`;
   const images = (page.images || []).slice(0, 3);
+  const region = regionFromPageKeyword(page.keyword);
+  const [{ cityLabel, regions }, { stations }] = await Promise.all([
+    getNearbySubRegionLinks(region, page.slug),
+    getNearbyStationLinks(region, page.slug),
+  ]);
+
   const breadcrumb = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
@@ -76,7 +89,7 @@ export default async function GuidePage({ params }: Props) {
       {
         "@type": "ListItem",
         position: 2,
-        name: "제주도감귤농장 안내글",
+        name: "지역별 보호소 안내",
         item: `${SITE.siteUrl.replace(/\/$/, "")}/guide`,
       },
       {
@@ -103,7 +116,7 @@ export default async function GuidePage({ params }: Props) {
     },
     image: images.length ? images : [SITE.logo],
     mainEntityOfPage: pageUrl,
-    about: ["제주도감귤농장", "서귀포감귤", page.keyword],
+    about: ["강아지보호소", "파양입소", "무료분양", page.keyword],
   };
 
   return (
@@ -121,7 +134,7 @@ export default async function GuidePage({ params }: Props) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd(page.faqs)) }}
       />
 
-      <div className="bg-[linear-gradient(180deg,#0f172a_0%,#1b4d3e_42%,#f8fafc_42%)] px-4 pb-10 pt-6">
+      <div className="bg-[linear-gradient(180deg,#1c2434_0%,#3d6fd4_42%,#f4f7fb_42%)] px-4 pb-10 pt-6">
         <div className="container">
           <GuideHeroThumb page={page} imageSrc={images[0] || SITE.logo} />
         </div>
@@ -129,18 +142,18 @@ export default async function GuidePage({ params }: Props) {
 
       <div className="container max-w-3xl py-12">
         <nav className="mb-8 text-sm text-[var(--muted)]">
-          <Link href="/" className="hover:text-[var(--orange)]">
+          <Link href="/" className="hover:text-[var(--coral)]">
             홈
           </Link>
           <span className="mx-2">/</span>
-          <Link href="/guide" className="hover:text-[var(--orange)]">
-            제주도감귤농장 안내글
+          <Link href="/guide" className="hover:text-[var(--coral)]">
+            지역별 보호소 안내
           </Link>
           <span className="mx-2">/</span>
           <span>{page.keyword}</span>
         </nav>
 
-        <p className="mb-2 text-sm font-bold tracking-wide text-[var(--orange)]">
+        <p className="mb-2 text-sm font-bold tracking-wide text-[var(--sky)]">
           {page.heroSubtitle}
         </p>
         <p className="mb-8 text-lg font-semibold leading-snug text-[var(--navy)] md:text-xl">
@@ -150,15 +163,14 @@ export default async function GuidePage({ params }: Props) {
         {page.sections.map((sec, si) => (
           <section key={sec.h2} className="mb-12">
             <h2 className="text-2xl font-extrabold text-[var(--navy)] md:text-3xl">{sec.h2}</h2>
-            <div className="my-3 h-px w-12 bg-[var(--orange)]" />
+            <div className="my-3 h-px w-12 bg-[var(--coral)]" />
             {sec.paragraphs.map((p, pi) => (
               <p key={pi} className="mb-4 leading-relaxed text-[var(--muted)]">
                 {p}
               </p>
             ))}
-            {/* 본문 이미지 2장만 — 섹션1·2 뒤에 배치 (가독성) */}
             {si < 2 && images[si + 1] && (
-              <figure className="my-7 overflow-hidden rounded-2xl border border-[var(--line)]">
+              <figure className="my-7 overflow-hidden rounded-[1.75rem] border border-[var(--line)]">
                 <Image
                   src={images[si + 1]}
                   alt={galleryAlt(page.keyword, si + 2)}
@@ -176,7 +188,7 @@ export default async function GuidePage({ params }: Props) {
         {page.faqs?.length > 0 && (
           <section className="mb-12">
             <h2 className="text-2xl font-extrabold text-[var(--navy)] md:text-3xl">자주 묻는 질문</h2>
-            <div className="my-3 h-px w-12 bg-[var(--orange)]" />
+            <div className="my-3 h-px w-12 bg-[var(--coral)]" />
             <div className="space-y-3">
               {page.faqs.map((f) => (
                 <details
@@ -191,17 +203,20 @@ export default async function GuidePage({ params }: Props) {
           </section>
         )}
 
-        <aside className="rounded-2xl border border-[var(--orange)] bg-[var(--orange-soft)] p-6 text-center">
+        <NearbyRegionsSection cityLabel={cityLabel} regions={regions} />
+        <NearbyStationsSection cityLabel={cityLabel} stations={stations} />
+
+        <aside className="mt-10 rounded-[1.75rem] border border-[var(--coral)] bg-[var(--coral-soft)] p-6 text-center">
           <p className="text-xl font-extrabold text-[var(--navy)] md:text-2xl">{page.ctaText}</p>
           <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
             <a href={SITE.phoneTel} className="btn-primary inline-flex">
               {CTA_LABEL} {SITE.phone}
             </a>
             <Link
-              href="/#order"
-              className="inline-flex rounded-xl border border-[var(--green)] px-4 py-3 text-sm font-bold text-[var(--green)]"
+              href="/#contact"
+              className="inline-flex rounded-full border border-[var(--sky)] px-4 py-3 text-sm font-bold text-[var(--sky)]"
             >
-              간편 주문 신청
+              온라인 상담 신청
             </Link>
           </div>
         </aside>

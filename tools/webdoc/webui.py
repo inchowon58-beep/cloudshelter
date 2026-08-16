@@ -1,14 +1,13 @@
 # -*- coding: utf-8 -*-
-"""Flask 웹 UI + Chrome 앱 모드 실행 (콘솔 없음)."""
+"""Flask 웹 UI + 일반 브라우저 새 창 실행 (콘솔 없음)."""
 
 from __future__ import annotations
 
 import os
 import socket
-import subprocess
-import sys
 import threading
 import time
+import webbrowser
 from pathlib import Path
 
 from flask import Flask, jsonify, render_template, request
@@ -18,6 +17,8 @@ from runtime import RUNTIME
 
 
 def _resource_dir() -> Path:
+    import sys
+
     if getattr(sys, "frozen", False):
         meipass = Path(getattr(sys, "_MEIPASS", Path(sys.executable).parent))
         cand = meipass / "templates"
@@ -134,20 +135,9 @@ def find_free_port(prefer: int = 17865) -> int:
     return prefer
 
 
-def find_chrome() -> str | None:
-    candidates = [
-        os.path.expandvars(r"%ProgramFiles%\Google\Chrome\Application\chrome.exe"),
-        os.path.expandvars(r"%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe"),
-        os.path.expandvars(r"%LocalAppData%\Google\Chrome\Application\chrome.exe"),
-    ]
-    return next((p for p in candidates if os.path.isfile(p)), None)
-
-
-def run_chrome_app(port: int) -> None:
+def run_browser_ui(port: int) -> None:
+    """일반 브라우저 새 창으로 UI 열기 (Chrome --app 아님)."""
     url = f"http://127.0.0.1:{port}/"
-    chrome = find_chrome()
-    profile = os.path.join(webdoc_dir(), ".chrome-app-profile")
-    os.makedirs(profile, exist_ok=True)
 
     def serve() -> None:
         app.run(host="127.0.0.1", port=port, threaded=True, use_reloader=False)
@@ -159,47 +149,20 @@ def run_chrome_app(port: int) -> None:
                 break
         time.sleep(0.1)
 
-    if not chrome:
-        import webbrowser
-
+    # new=1 → 가능하면 새 창, new=2 → 새 탭
+    try:
+        webbrowser.open(url, new=1)
+    except Exception:
         webbrowser.open(url)
-        while not RUNTIME.quit_requested:
-            time.sleep(1)
-        RUNTIME.shutdown()
-        return
 
-    cmd = [
-        chrome,
-        f"--user-data-dir={profile}",
-        f"--app={url}",
-        "--window-size=1120,820",
-        "--disable-extensions",
-        "--no-first-run",
-        "--no-default-browser-check",
-    ]
-
-    # windowed(콘솔 없음): UI가 곧 프로세스의 얼굴.
-    # 스케줄 ON 이면 UI를 닫아도 백엔드 유지 후 UI 재실행.
-    # 완전 종료는 UI의 [프로그램 종료] → /api/quit.
-    while True:
-        if RUNTIME.quit_requested:
-            break
-        proc = subprocess.Popen(cmd)
-        proc.wait()
-        if RUNTIME.quit_requested:
-            break
-        if not RUNTIME.settings.get("schedule_enabled"):
-            break
-        RUNTIME.log(
-            "UI 창이 닫혔습니다. 스케줄 ON이라 백엔드는 유지하고, "
-            "잠시 후 UI를 다시 엽니다. 완전 종료는 [프로그램 종료] 버튼."
-        )
-        for _ in range(50):
-            if RUNTIME.quit_requested:
-                break
-            time.sleep(0.1)
-        if RUNTIME.quit_requested:
-            break
+    # 브라우저를 닫아도 백엔드는 유지 — [프로그램 종료] 로만 끝냄
+    while not RUNTIME.quit_requested:
+        time.sleep(0.4)
 
     RUNTIME.shutdown()
     os._exit(0)
+
+
+# 하위 호환
+def run_chrome_app(port: int) -> None:
+    run_browser_ui(port)

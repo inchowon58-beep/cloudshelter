@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
     loaderFile: "./image-loader.ts",
     remotePatterns: [
       { protocol: "https", hostname: "image.cattery.co.kr" },
+      { protocol: "https", hostname: "cdn.sanity.io" },
     ],
   },
 };

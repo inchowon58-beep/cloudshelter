@@ -6,13 +6,13 @@ import { SITE } from "@/lib/site";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "제주도감귤농장 안내글",
-  description: `${SITE.name} 제주도감귤농장·서귀포감귤 산지직송 안내글 모음 — 박스갈이 없는 농장 직배송 가이드`,
-  keywords: [...SITE.keywords, "제주도감귤농장 안내"],
+  title: "지역별 보호소 안내",
+  description: `${SITE.name} 지역별 강아지 파양입소·무료분양 안내글 모음`,
+  keywords: [...SITE.keywords, "지역별 강아지보호소"],
   alternates: { canonical: `${SITE.siteUrl}/guide` },
   openGraph: {
-    title: `제주도감귤농장 안내글 | ${SITE.name}`,
-    description: `${SITE.name} 서귀포 감귤 산지직송 가이드`,
+    title: `지역별 보호소 안내 | ${SITE.name}`,
+    description: `${SITE.name} 파양입소·무료분양 지역 가이드`,
     url: `${SITE.siteUrl}/guide`,
     images: [{ url: SITE.logo, alt: SITE.name }],
   },
@@ -34,15 +34,15 @@ export default async function GuideIndexPage({ searchParams }: Props) {
 
   return (
     <div className="container min-h-screen py-28">
-      <p className="text-sm font-bold text-[var(--orange)]">Archive</p>
+      <p className="text-sm font-bold text-[var(--sky)]">Archive</p>
       <h1 className="mt-2 text-3xl font-extrabold text-[var(--navy)] md:text-4xl">
-        제주도감귤농장 안내글
+        지역별 보호소 안내
       </h1>
       <p className="mt-3 max-w-xl text-[var(--muted)]">
-        총 {total}건 · 서귀포 산지직송·박스갈이 주의 가이드
+        총 {total}건 · 파양입소·무료분양 지역 가이드
       </p>
 
-      <ul className="mt-10 divide-y divide-[var(--line)] overflow-hidden rounded-2xl border border-[var(--line)] bg-white">
+      <ul className="mt-10 divide-y divide-[var(--line)] overflow-hidden rounded-[1.75rem] border border-[var(--line)] bg-white">
         {slice.length === 0 && (
           <li className="px-5 py-8 text-[var(--muted)]">등록된 안내글이 없습니다.</li>
         )}
@@ -52,13 +52,13 @@ export default async function GuideIndexPage({ searchParams }: Props) {
             <li key={p.slug}>
               <Link
                 href={pagePath(p.slug)}
-                className="flex gap-4 px-5 py-4 transition hover:bg-[var(--orange-soft)]"
+                className="flex gap-4 px-5 py-4 transition hover:bg-[var(--sky-soft)]"
               >
-                <span className="w-10 shrink-0 text-xl font-bold text-[var(--orange)]">
+                <span className="w-10 shrink-0 text-xl font-bold text-[var(--coral)]">
                   {String(no).padStart(2, "0")}
                 </span>
                 <div>
-                  <div className="text-xs text-[var(--orange)]">{p.keyword}</div>
+                  <div className="text-xs text-[var(--sky)]">{p.keyword}</div>
                   <div className="text-xl font-bold text-[var(--navy)]">{p.h1}</div>
                   <p className="mt-1 line-clamp-2 text-sm text-[var(--muted)]">
                     {p.metaDescription}
@@ -78,7 +78,7 @@ export default async function GuideIndexPage({ searchParams }: Props) {
               href={n === 1 ? "/guide" : `/guide?page=${n}`}
               className={`min-w-9 rounded-full px-2 py-1 text-center text-sm ${
                 n === current
-                  ? "bg-[var(--green)] text-white"
+                  ? "bg-[var(--sky)] text-white"
                   : "rounded-xl border border-[var(--line)] bg-white text-[var(--ink)]"
               }`}
             >

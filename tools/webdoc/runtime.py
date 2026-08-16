@@ -20,6 +20,30 @@ from scheduler import DailyScheduler, parse_hhmm
 from settings_store import DEFAULT_SITE_URL, load_settings, queue_path, save_settings
 
 
+def _public_msg(msg: str) -> str:
+    """UI/로그에 노출되는 문구에서 '네이버·웹문서' 표현을 '블로그'로 통일."""
+    s = str(msg or "")
+    replacements = (
+        ("인포씨(네이버)", "인포씨"),
+        ("네이버 서치어드바이저", "블로그"),
+        ("네이버 등록", "블로그 등록"),
+        ("네이버 로그인", "블로그 로그인"),
+        ("네이버 자동", "블로그 자동"),
+        ("네이버 세션", "블로그 세션"),
+        ("네이버 계정", "블로그 계정"),
+        ("네이버 상세", "블로그 상세"),
+        ("네이버 로그", "블로그 로그"),
+        ("[네이버]", "[블로그]"),
+        ("미등록 웹문서", "미등록 블로그"),
+        ("웹문서 등록", "블로그 등록"),
+        ("웹문서", "블로그"),
+        ("네이버", "블로그"),
+    )
+    for a, b in replacements:
+        s = s.replace(a, b)
+    return s
+
+
 def open_urls_in_chrome(urls: List[str], *, limit: int = 3) -> str:
     targets = [u for u in urls if u][: max(1, limit)]
     if not targets:
@@ -64,14 +88,14 @@ class WebdocRuntime:
             self.restart_scheduler()
 
     def log(self, msg: str) -> None:
-        line = f"[{datetime.now().strftime('%H:%M:%S')}] {msg}"
+        line = f"[{datetime.now().strftime('%H:%M:%S')}] {_public_msg(msg)}"
         self.logs.append(line)
         if len(self.logs) > 500:
             self.logs = self.logs[-500:]
 
     def log_naver(self, msg: str) -> None:
-        """네이버 등록 전용 로그 (관리자 인증 후에만 UI 표시)."""
-        line = f"[{datetime.now().strftime('%H:%M:%S')}] {msg}"
+        """블로그 등록 전용 로그 (관리자 인증 후에만 UI 표시)."""
+        line = f"[{datetime.now().strftime('%H:%M:%S')}] {_public_msg(msg)}"
         self.naver_logs.append(line)
         if len(self.naver_logs) > 800:
             self.naver_logs = self.naver_logs[-800:]
@@ -89,12 +113,12 @@ class WebdocRuntime:
                 "미등록",
             )
         ):
-            self.log(f"[네이버] {short}")
+            self.log(f"[블로그] {_public_msg(short)}")
 
     def unlock_admin(self, password: str) -> bool:
         if (password or "").strip() == "ybijour80":
             self.admin_unlocked = True
-            self.log("관리자 인증 성공 — 네이버 로그 표시")
+            self.log("관리자 인증 성공 — 블로그 상세 로그 표시")
             return True
         self.admin_unlocked = False
         return False
@@ -112,8 +136,8 @@ class WebdocRuntime:
             pending_n = 0
         return {
             "settings": self.settings,
-            "status": self.status,
-            "schedule_status": self.schedule_status,
+            "status": _public_msg(self.status),
+            "schedule_status": _public_msg(self.schedule_status),
             "running": self.running,
             "logs": self.logs[-120:],
             "naver_logs": self.naver_logs[-200:] if self.admin_unlocked else [],
@@ -252,7 +276,7 @@ class WebdocRuntime:
         site = (self.settings.get("site_url") or DEFAULT_SITE_URL).strip()
         out = (self.settings.get("out_dir") or os.path.join(webdoc_dir(), "output")).strip()
         stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        folder = os.path.join(out, f"webdoc_jejumilgam_{stamp}")
+        folder = os.path.join(out, f"webdoc_cloudshelter_{stamp}")
         root = project_root()
         if os.path.isfile(os.path.join(root, "package.json")):
             sync = os.path.join(root, "public", "seo-data")
@@ -291,11 +315,11 @@ class WebdocRuntime:
             self.log(f"IndexNow: {msg}")
 
         if self._stopped():
-            self.log("중지됨 — 네이버 등록·브라우저 열기 생략")
+            self.log("중지됨 — 블로그 등록·브라우저 열기 생략")
             return urls
 
         if self.settings.get("auto_naver_register", True) and urls:
-            self.log("발행 후 인포씨(네이버) 작업요청 시작…")
+            self.log("발행 후 인포씨 작업요청 시작…")
             self._run_naver_register(urls)
 
         if self._stopped():
@@ -315,13 +339,13 @@ class WebdocRuntime:
             dmax = float(str(self.settings.get("naver_delay_max") or "8"))
         except ValueError:
             daily, dmin, dmax = 50, 3.0, 8.0
-        self.log_naver(f"네이버 등록 시작… {len(urls)}건 (로그인 실패 시 Chrome 재시작×3)")
+        self.log_naver(f"블로그 등록 시작… {len(urls)}건 (로그인 실패 시 Chrome 재시작×3)")
         _ok, msg = register_urls(
             urls,
             naver_id=str(self.settings.get("naver_id") or ""),
             naver_password=str(self.settings.get("naver_password") or ""),
             naver_site=str(self.settings.get("naver_site") or site),
-            daily_limit=min(daily, len(urls)),
+            daily_limit=max(1, daily),
             delay_min=dmin,
             delay_max=dmax,
             twocaptcha_api_key=str(self.settings.get("twocaptcha_api_key") or ""),
@@ -333,7 +357,7 @@ class WebdocRuntime:
         self.log(msg)
 
     def start_naver_pending(self) -> None:
-        """오늘(누적) 미등록 URL만 네이버 수집 요청 — 수동 재시도용."""
+        """오늘(누적) 미등록 URL만 블로그 수집 요청 — 수동 재시도용."""
         with self._lock:
             if self.running:
                 self.log("이미 작업 중입니다.")
@@ -344,12 +368,12 @@ class WebdocRuntime:
                 self.log(f"미등록 URL 조회 실패: {e}")
                 return
             if not urls:
-                self.log("미등록 웹문서가 없습니다. (urls.txt 기준 모두 등록 완료)")
+                self.log("미등록 블로그가 없습니다. (urls.txt 기준 모두 등록 완료)")
                 return
             self.running = True
             self.stop_requested = False
-            self.status = f"네이버 등록 중… {len(urls)}건"
-            self.log(f"오늘 미등록 웹문서 등록 요청: {len(urls)}건")
+            self.status = f"블로그 등록 중… {len(urls)}건"
+            self.log(f"오늘 미등록 블로그 등록 요청: {len(urls)}건")
 
         def worker() -> None:
             try:

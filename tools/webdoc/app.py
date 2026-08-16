@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
-"""제주도감귤농장 웹문서 생성기 — 웹앱 UI 진입점 (콘솔 없음).
+"""강아지보호소 구름이네 SEO·블로그 등록기 — 웹앱 UI 진입점 (콘솔 없음).
 
-유아독존 SEO / 강아지교배 웹문서생성기와 동일하게:
-- 로컬 Flask 웹서버
-- Chrome 앱 창(또는 브라우저) 자동 실행
-- --windowed exe 시 검은 콘솔 없음
+일반 브라우저 새 창으로 UI를 엽니다.
 """
 
 from __future__ import annotations
@@ -23,10 +20,10 @@ def _ensure_stdio() -> None:
 
 def main() -> None:
     _ensure_stdio()
-    from webui import find_free_port, run_chrome_app
+    from webui import find_free_port, run_browser_ui
 
     port = find_free_port()
-    run_chrome_app(port)
+    run_browser_ui(port)
 
 
 if __name__ == "__main__":

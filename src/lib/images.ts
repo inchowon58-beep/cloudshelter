@@ -1,6 +1,6 @@
 import { SITE } from "./site";
 
-/** jejumilgam 01.webp ~ 13.webp */
+/** dogboho 01.webp ~ N.webp */
 export function imageUrl(index: number): string {
   const n = Math.max(1, Math.min(SITE.imageCount, index));
   return `${SITE.imageBase}/${String(n).padStart(2, "0")}.webp`;
@@ -11,13 +11,14 @@ function clampImageIndex(num: number): number {
   return Math.min(SITE.imageCount, Math.max(1, Math.floor(num)));
 }
 
-/** 범위 초과·잘못된 URL → 01~13 로 맞춤 */
+/** 구 CDN·잘못된 URL → dogboho 01~N 로 맞춤 */
 export function migrateImageUrl(url: string): string {
-  return url.replace(
-    /(https?:\/\/image\.cattery\.co\.kr\/jejumilgam\/)(?:new)?(\d{1,3})\.webp/gi,
-    (_m, base: string, num: string) =>
-      `${base}${String(clampImageIndex(Number(num))).padStart(2, "0")}.webp`
-  );
+  return url
+    .replace(
+      /https?:\/\/image\.cattery\.co\.kr\/(?:jejumilgam|dogboho)\/(?:new)?(\d{1,3})\.webp/gi,
+      (_m, num: string) =>
+        `${SITE.imageBase}/${String(clampImageIndex(Number(num))).padStart(2, "0")}.webp`
+    );
 }
 
 export function allImageUrls(): string[] {
@@ -46,11 +47,11 @@ export function pickImages(count: number, seed = 42): string[] {
 
 export function galleryAlt(keywordOrIndex: string | number, index = 1): string {
   const suffixes = [
-    "서귀포 감귤 농장 전경",
-    "당일 수확 감귤",
-    "농장주 직배송 포장",
-    "고당도 감귤 선별",
-    "제주 서귀포 과수원",
+    "보호 중인 강아지",
+    "무료분양 대기 아이",
+    "파양입소 보호 공간",
+    "새 가족을 기다리는 아이들",
+    "구름이네 보호소 일상",
   ];
   if (typeof keywordOrIndex === "number") {
     const i = keywordOrIndex;

@@ -58,7 +58,7 @@ function itemXml(base: string, page: SeoPage): string {
     <guid isPermaLink="true">${escXml(link)}</guid>
     <pubDate>${rfc822(pub)}</pubDate>
     <author>${escXml(SITE.brand)}</author>
-    <category>${escXml(page.keyword || "제주도감귤농장")}</category>
+    <category>${escXml(page.keyword || "강아지보호소")}</category>
     <description><![CDATA[${cdata(desc)}]]></description>
     <content:encoded><![CDATA[${cdata(body)}]]></content:encoded>
   </item>`;
@@ -71,16 +71,16 @@ export async function GET(req: Request) {
   if (!pages.length) {
     pages = [
       {
-        slug: "jejumilgam-intro",
-        keyword: "제주도감귤농장",
-        title: `${SITE.name} | 제주도감귤농장 서귀포 산지직송`,
+        slug: "cloudshelter-intro",
+        keyword: "강아지보호소",
+        title: `${SITE.name} | 파양입소 · 무료분양`,
         metaDescription: SITE.description,
         metaKeywords: SITE.keywords.join(", "),
-        h1: `${SITE.name} 제주도감귤농장 안내`,
+        h1: `${SITE.name} 안내`,
         heroSubtitle: SITE.taglineEn,
         sections: [
           {
-            h2: "제주도감귤농장 뽕순이네",
+            h2: "강아지보호소 구름이네",
             paragraphs: [SITE.description, SITE.tagline],
           },
         ],
