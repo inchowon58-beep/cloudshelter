@@ -78,6 +78,17 @@ export default function AdminClient() {
   const [orderTotalPages, setOrderTotalPages] = useState(1);
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
   const [deletingOrders, setDeletingOrders] = useState(false);
+  const [inquiryFilter, setInquiryFilter] = useState<"all" | "new" | "done">("all");
+  const [telegramStatus, setTelegramStatus] = useState<{
+    enabled: boolean;
+    botUsername: string;
+    botUrl: string;
+    chatIdConfigured: boolean;
+    chatIdHint: string | null;
+    ownerChatIdHint: string;
+  } | null>(null);
+  const [telegramMsg, setTelegramMsg] = useState("");
+  const [telegramTesting, setTelegramTesting] = useState(false);
 
   function absolutePageUrl(path: string) {
     const base = (process.env.NEXT_PUBLIC_SITE_URL || "https://cloudshelter.vercel.app").replace(
@@ -214,11 +225,11 @@ export default function AdminClient() {
   }
 
   function toggleSelectAllOrders() {
-    if (selectedOrderIds.length === orders.length) {
+    if (selectedOrderIds.length === filteredOrders.length && filteredOrders.length > 0) {
       setSelectedOrderIds([]);
       return;
     }
-    setSelectedOrderIds(orders.map((o) => o.id));
+    setSelectedOrderIds(filteredOrders.map((o) => o.id));
   }
 
   async function deleteSelectedOrders() {
@@ -242,6 +253,39 @@ export default function AdminClient() {
     }
   }
 
+  const loadTelegramStatus = useCallback(async () => {
+    const res = await fetch("/api/admin/telegram");
+    if (!res.ok) return;
+    const data = await res.json();
+    setTelegramStatus(data);
+  }, []);
+
+  useEffect(() => {
+    if (authed) void loadTelegramStatus();
+  }, [authed, loadTelegramStatus]);
+
+  async function sendTelegramTest() {
+    setTelegramTesting(true);
+    setTelegramMsg("");
+    try {
+      const res = await fetch("/api/admin/telegram", { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      setTelegramMsg(data.message || (res.ok ? "전송 완료" : "전송 실패"));
+      await loadTelegramStatus();
+    } finally {
+      setTelegramTesting(false);
+    }
+  }
+
+  const filteredOrders = orders.filter((o) => {
+    if (inquiryFilter === "new") return o.status === "new";
+    if (inquiryFilter === "done") return o.status === "done" || o.status === "contacted";
+    return true;
+  });
+
+  const waitingCount = orders.filter((o) => o.status === "new").length;
+  const doneCount = orders.filter((o) => o.status === "done" || o.status === "contacted").length;
+
   if (checking) {
     return (
       <div className="flex min-h-screen items-center justify-center pt-24">
@@ -260,7 +304,7 @@ export default function AdminClient() {
           <p className="text-sm font-bold text-[var(--orange)]">Admin</p>
           <h1 className="mt-2 text-3xl font-extrabold text-[var(--navy)]">관리자 로그인</h1>
           <p className="mt-2 text-sm text-[var(--muted)]">
-            강아지보호소 구름이네 · 문의·SEO 발행 관리
+            구름이네쉘터 · 문의·SEO 발행 관리
           </p>
           <label className="mt-6 block text-sm font-semibold">
             아이디
@@ -331,37 +375,93 @@ export default function AdminClient() {
       </div>
 
       {tab === "orders" && (
-        <div className="mt-8">
-          <div className="overflow-hidden rounded-[1.75rem] border border-[var(--line)] bg-gradient-to-br from-white via-white to-[#eef4ff] shadow-[0_18px_40px_rgba(28,36,52,0.06)]">
-            <div className="flex flex-wrap items-end justify-between gap-4 border-b border-[var(--line)] bg-white/80 px-5 py-5 md:px-7">
-              <div>
-                <p className="text-xs font-bold tracking-wide text-[var(--sky)]">INQUIRY BOARD</p>
-                <h2 className="mt-1 text-2xl font-extrabold text-[var(--navy)] md:text-3xl">
-                  구름이네 문의목록
-                </h2>
-                <p className="mt-1 text-sm text-[var(--muted)]">
-                  온라인 상담 신청을 확인하고 상태를 바꿔 관리하세요.
+        <div className="mt-8 space-y-5">
+          {/* 텔레그램 채팅방 연결 */}
+          <section className="rounded-2xl border border-[#c9dbff] bg-[#f3f7ff] p-5 md:p-6">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold tracking-wide text-[var(--sky-deep)]">TELEGRAM ALERT</p>
+                <h2 className="mt-1 text-xl font-extrabold text-[var(--navy)]">문의 알림 채팅방</h2>
+                <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
+                  문의가 오면 텔레그램으로 바로 옵니다. 아래 버튼으로 봇 채팅방에 들어가
+                  <strong className="text-[var(--navy)]"> /start </strong>
+                  를 한 번 눌러주세요.
                 </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <span className="rounded-full bg-[#fff0eb] px-3 py-1 text-xs font-bold text-[#e85d3d]">
-                    답변대기 {orders.filter((o) => o.status === "new").length}
+                <ol className="mt-3 list-decimal space-y-1 pl-5 text-sm text-[var(--ink)]">
+                  <li>「봇 채팅방 열기」 클릭</li>
+                  <li>텔레그램에서 <b>시작</b> 또는 <code>/start</code> 입력</li>
+                  <li>Vercel 환경변수 <code>TELEGRAM_CHAT_ID</code> = <b>8433555162</b> 확인</li>
+                  <li>「테스트 알림」으로 수신 확인</li>
+                </ol>
+                <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                  <span className="rounded-full bg-white px-3 py-1 font-semibold text-[var(--navy)] ring-1 ring-[var(--line)]">
+                    내 ID: 8433555162
                   </span>
-                  <span className="rounded-full bg-[#eaf7f1] px-3 py-1 text-xs font-bold text-[#1f7a4d]">
-                    답변완료 {orders.filter((o) => o.status === "done").length}
+                  <span className="rounded-full bg-white px-3 py-1 font-semibold text-[var(--navy)] ring-1 ring-[var(--line)]">
+                    봇: @{telegramStatus?.botUsername || "cloudshelter_79_bot"}
                   </span>
-                  <span className="rounded-full bg-[#e8f1ff] px-3 py-1 text-xs font-bold text-[#3d6fd4]">
-                    전체 {orderTotal}
+                  <span
+                    className={`rounded-full px-3 py-1 font-bold ${
+                      telegramStatus?.enabled
+                        ? "bg-[#eaf7f1] text-[#1f7a4d]"
+                        : "bg-[#fff0eb] text-[#e85d3d]"
+                    }`}
+                  >
+                    {telegramStatus?.enabled ? "알림 연결됨" : "환경변수 확인 필요"}
                   </span>
                 </div>
+                {telegramMsg && (
+                  <p className="mt-2 text-sm font-semibold text-[var(--navy)]">{telegramMsg}</p>
+                )}
+              </div>
+              <div className="flex w-full flex-col gap-2 sm:w-auto">
+                <a
+                  href={telegramStatus?.botUrl || "https://t.me/cloudshelter_79_bot"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center rounded-full bg-[#2AABEE] px-4 py-2.5 text-sm font-bold text-white shadow-sm"
+                >
+                  봇 채팅방 열기
+                </a>
+                <button
+                  type="button"
+                  onClick={sendTelegramTest}
+                  disabled={telegramTesting}
+                  className="rounded-full border border-[var(--line)] bg-white px-4 py-2.5 text-sm font-bold text-[var(--navy)] disabled:opacity-50"
+                >
+                  {telegramTesting ? "전송 중…" : "테스트 알림 보내기"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    void navigator.clipboard.writeText("8433555162");
+                    setTelegramMsg("Chat ID 8433555162 를 복사했습니다. Vercel TELEGRAM_CHAT_ID에 붙여넣으세요.");
+                  }}
+                  className="rounded-full border border-dashed border-[var(--sky)] bg-white px-4 py-2.5 text-sm font-semibold text-[var(--sky-deep)]"
+                >
+                  Chat ID 복사
+                </button>
+              </div>
+            </div>
+          </section>
+
+          {/* 문의 목록 */}
+          <section className="overflow-hidden rounded-2xl border border-[var(--line)] bg-white shadow-[0_12px_32px_rgba(28,36,52,0.05)]">
+            <div className="flex flex-wrap items-end justify-between gap-3 border-b border-[var(--line)] px-4 py-4 md:px-5">
+              <div>
+                <h2 className="text-xl font-extrabold text-[var(--navy)] md:text-2xl">구름이네 문의목록</h2>
+                <p className="mt-1 text-sm text-[var(--muted)]">
+                  총 {orderTotal}건 · 가독성 있게 한 줄씩 확인하세요
+                </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
                   onClick={toggleSelectAllOrders}
-                  disabled={orders.length === 0}
-                  className="rounded-full border border-[var(--line)] bg-white px-3.5 py-2 text-xs font-semibold text-[var(--navy)] shadow-sm transition hover:border-[var(--sky)] disabled:opacity-40"
+                  disabled={filteredOrders.length === 0}
+                  className="rounded-lg border border-[var(--line)] px-3 py-1.5 text-xs font-semibold disabled:opacity-40"
                 >
-                  {selectedOrderIds.length === orders.length && orders.length > 0
+                  {selectedOrderIds.length === filteredOrders.length && filteredOrders.length > 0
                     ? "선택 해제"
                     : "전체 선택"}
                 </button>
@@ -369,83 +469,111 @@ export default function AdminClient() {
                   type="button"
                   onClick={deleteSelectedOrders}
                   disabled={!selectedOrderIds.length || deletingOrders}
-                  className="rounded-full bg-[#dc2626] px-3.5 py-2 text-xs font-bold text-white shadow-sm transition hover:brightness-95 disabled:opacity-40"
+                  className="rounded-lg bg-[#dc2626] px-3 py-1.5 text-xs font-bold text-white disabled:opacity-40"
                 >
                   {deletingOrders ? "삭제 중…" : `선택 삭제 (${selectedOrderIds.length})`}
                 </button>
               </div>
             </div>
 
-            {orders.length === 0 ? (
-              <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--sky-soft)] text-2xl">
-                  ✉️
-                </div>
-                <p className="mt-4 text-lg font-bold text-[var(--navy)]">아직 접수된 문의가 없습니다</p>
-                <p className="mt-2 max-w-sm text-sm text-[var(--muted)]">
-                  메인 페이지에서 상담 신청이 들어오면 여기에 카드로 표시됩니다.
+            <div className="flex flex-wrap gap-2 border-b border-[var(--line)] bg-[#f8fafc] px-4 py-3 md:px-5">
+              {(
+                [
+                  { key: "all", label: `전체보기 (${orders.length})` },
+                  { key: "new", label: `미처리 (${waitingCount})` },
+                  { key: "done", label: `답변완료 (${doneCount})` },
+                ] as const
+              ).map((f) => (
+                <button
+                  key={f.key}
+                  type="button"
+                  onClick={() => setInquiryFilter(f.key)}
+                  className={`rounded-full px-3 py-1.5 text-xs font-bold ${
+                    inquiryFilter === f.key
+                      ? "bg-[var(--navy)] text-white"
+                      : "bg-white text-[var(--muted)] ring-1 ring-[var(--line)]"
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+
+            {filteredOrders.length === 0 ? (
+              <div className="px-5 py-14 text-center">
+                <p className="text-base font-bold text-[var(--navy)]">표시할 문의가 없습니다</p>
+                <p className="mt-2 text-sm text-[var(--muted)]">
+                  메인에서 상담 신청이 오면 이 목록에 나타납니다.
                 </p>
               </div>
             ) : (
-              <ul className="grid gap-3 p-4 md:grid-cols-2 md:gap-4 md:p-6">
-                {orders.map((o) => {
-                  const selected = selectedOrderIds.includes(o.id);
-                  return (
-                    <li
-                      key={o.id}
-                      className={`rounded-2xl border bg-white p-4 shadow-[0_8px_24px_rgba(28,36,52,0.04)] transition ${
-                        selected
-                          ? "border-[var(--coral)] ring-2 ring-[rgba(255,122,89,0.18)]"
-                          : "border-[var(--line)] hover:border-[var(--sky)]"
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <input
-                          type="checkbox"
-                          className="mt-1 h-4 w-4 shrink-0 accent-[var(--coral)]"
-                          checked={selected}
-                          onChange={() => toggleOrderSelect(o.id)}
-                          aria-label={`${o.name} 문의 선택`}
-                        />
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[720px] text-left text-sm">
+                  <thead className="bg-[#f1f5f9] text-xs font-bold uppercase tracking-wide text-[var(--muted)]">
+                    <tr>
+                      <th className="w-10 px-3 py-3" />
+                      <th className="px-3 py-3">상태</th>
+                      <th className="px-3 py-3">신청자</th>
+                      <th className="px-3 py-3">연락처</th>
+                      <th className="px-3 py-3">문의유형</th>
+                      <th className="px-3 py-3">내용/지역</th>
+                      <th className="px-3 py-3">접수시각</th>
+                      <th className="px-3 py-3">처리</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredOrders.map((o) => {
+                      const selected = selectedOrderIds.includes(o.id);
+                      return (
+                        <tr
+                          key={o.id}
+                          className={`border-t border-[var(--line)] ${
+                            selected ? "bg-[#fff7f4]" : "bg-white hover:bg-[#f8fafc]"
+                          }`}
+                        >
+                          <td className="px-3 py-3 align-top">
+                            <input
+                              type="checkbox"
+                              className="h-4 w-4 accent-[var(--coral)]"
+                              checked={selected}
+                              onChange={() => toggleOrderSelect(o.id)}
+                              aria-label={`${o.name} 선택`}
+                            />
+                          </td>
+                          <td className="px-3 py-3 align-top">
                             <span
-                              className={`rounded-full px-2.5 py-0.5 text-[0.7rem] font-bold ${
+                              className={`inline-flex rounded-full px-2.5 py-1 text-[0.7rem] font-bold ${
                                 STATUS_STYLE[o.status] || STATUS_STYLE.new
                               }`}
                             >
                               {STATUS_LABEL[o.status] || o.status}
                             </span>
-                            <strong className="truncate text-base text-[var(--navy)]">{o.name}</strong>
-                          </div>
-
-                          <a
-                            href={`tel:${o.phone.replace(/-/g, "")}`}
-                            className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-[var(--sky-soft)] px-3 py-1.5 text-sm font-bold text-[var(--sky-deep)]"
-                          >
-                            📞 {o.phone}
-                          </a>
-
-                          <div className="mt-3 space-y-1.5 text-sm">
-                            <p className="font-semibold text-[var(--ink)]">
-                              {o.productLabel}
-                              {o.quantity && o.quantity !== "1" ? ` · ${o.quantity}` : ""}
-                            </p>
+                          </td>
+                          <td className="px-3 py-3 align-top font-bold text-[var(--navy)]">{o.name}</td>
+                          <td className="px-3 py-3 align-top">
+                            <a
+                              href={`tel:${o.phone.replace(/-/g, "")}`}
+                              className="font-semibold text-[var(--sky-deep)] underline-offset-2 hover:underline"
+                            >
+                              {o.phone}
+                            </a>
+                          </td>
+                          <td className="px-3 py-3 align-top text-[var(--ink)]">{o.productLabel}</td>
+                          <td className="max-w-[220px] px-3 py-3 align-top text-[var(--muted)]">
                             {o.address && o.address !== "미입력" && (
-                              <p className="text-[var(--muted)]">📍 {o.address}</p>
+                              <div className="text-[var(--ink)]">{o.address}</div>
                             )}
-                            {o.memo && (
-                              <p className="rounded-xl bg-[#f8fafc] px-3 py-2 text-[var(--muted)]">
-                                {o.memo}
-                              </p>
+                            {o.memo ? <div className="mt-0.5 line-clamp-2">{o.memo}</div> : null}
+                            {!o.memo && (!o.address || o.address === "미입력") && (
+                              <span className="text-[var(--muted)]">—</span>
                             )}
-                            <p className="text-xs text-[var(--muted)]">{formatInquiryTime(o.createdAt)}</p>
-                          </div>
-
-                          <div className="mt-3 flex items-center gap-2">
-                            <label className="text-xs font-semibold text-[var(--muted)]">상태</label>
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-3 align-top text-xs text-[var(--muted)]">
+                            {formatInquiryTime(o.createdAt)}
+                          </td>
+                          <td className="px-3 py-3 align-top">
                             <select
-                              className="flex-1 rounded-xl border border-[var(--line)] bg-[#fbfcfe] px-2.5 py-2 text-sm"
+                              className="w-full min-w-[110px] rounded-lg border border-[var(--line)] bg-white px-2 py-1.5 text-xs font-semibold"
                               value={o.status}
                               onChange={(e) => changeOrderStatus(o.id, e.target.value)}
                             >
@@ -454,17 +582,17 @@ export default function AdminClient() {
                               <option value="done">답변완료</option>
                               <option value="cancelled">취소</option>
                             </select>
-                          </div>
-                        </div>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             )}
-          </div>
+          </section>
 
-          <div className="mt-4 flex flex-wrap justify-center gap-2">
+          <div className="flex flex-wrap justify-center gap-2">
             {Array.from({ length: Math.max(1, orderTotalPages) }, (_, i) => i + 1).map((n) => (
               <button
                 key={n}
@@ -473,7 +601,7 @@ export default function AdminClient() {
                 className={`min-w-9 rounded-full px-2 py-1 text-sm ${
                   n === orderPage
                     ? "bg-[var(--sky)] text-white"
-                    : "rounded-xl border border-[var(--line)] bg-white"
+                    : "border border-[var(--line)] bg-white"
                 }`}
               >
                 {n}
