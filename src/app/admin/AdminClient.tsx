@@ -86,6 +86,7 @@ export default function AdminClient() {
     chatIdConfigured: boolean;
     chatIdHint: string | null;
     ownerChatIdHint: string;
+    recipientCount?: number;
   } | null>(null);
   const [telegramMsg, setTelegramMsg] = useState("");
   const [telegramTesting, setTelegramTesting] = useState(false);
@@ -376,29 +377,81 @@ export default function AdminClient() {
 
       {tab === "orders" && (
         <div className="mt-8 space-y-5">
-          {/* 텔레그램 채팅방 연결 */}
+          {/* 텔레그램 채팅방 연결 + 운영자 초대 */}
           <section className="rounded-2xl border border-[#c9dbff] bg-[#f3f7ff] p-5 md:p-6">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-bold tracking-wide text-[var(--sky-deep)]">TELEGRAM ALERT</p>
-                <h2 className="mt-1 text-xl font-extrabold text-[var(--navy)]">문의 알림 채팅방</h2>
+                <h2 className="mt-1 text-xl font-extrabold text-[var(--navy)]">문의 알림 · 운영자 초대</h2>
                 <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">
-                  문의가 오면 텔레그램으로 바로 옵니다. 아래 버튼으로 봇 채팅방에 들어가
-                  <strong className="text-[var(--navy)]"> /start </strong>
-                  를 한 번 눌러주세요.
+                  본인({telegramStatus?.ownerChatIdHint || "8433555162"})은 이미 연결돼 있습니다.
+                  <strong className="text-[var(--navy)]"> 전화를 받을 운영자</strong>도 같이 받으려면
+                  아래처럼 <strong className="text-[var(--navy)]">단톡방(그룹)</strong>을 만드세요.
                 </p>
-                <ol className="mt-3 list-decimal space-y-1 pl-5 text-sm text-[var(--ink)]">
-                  <li>「봇 채팅방 열기」 클릭</li>
-                  <li>텔레그램에서 <b>시작</b> 또는 <code>/start</code> 입력</li>
-                  <li>Vercel 환경변수 <code>TELEGRAM_CHAT_ID</code> = <b>8433555162</b> 확인</li>
-                  <li>「테스트 알림」으로 수신 확인</li>
-                </ol>
+
+                <div className="mt-4 rounded-xl border border-white bg-white/90 p-4 text-sm text-[var(--ink)] shadow-sm">
+                  <p className="font-extrabold text-[var(--navy)]">운영자를 채팅방에 넣는 방법</p>
+                  <ol className="mt-2 list-decimal space-y-2 pl-5 leading-relaxed">
+                    <li>
+                      텔레그램에서 <b>새 그룹</b>을 만듭니다.
+                      <br />
+                      <span className="text-[var(--muted)]">이름 예: 구름이네쉘터 문의알림</span>
+                    </li>
+                    <li>
+                      그룹에 <b>본인</b> + <b>운영자</b> + 봇
+                      <code className="mx-1 rounded bg-[#e8f1ff] px-1.5 py-0.5 text-xs">
+                        @{telegramStatus?.botUsername || "cloudshelter_79_bot"}
+                      </code>
+                      를 초대합니다.
+                    </li>
+                    <li>
+                      그룹에서 봇에게 <code className="rounded bg-[#e8f1ff] px-1.5 py-0.5 text-xs">/start</code> 를
+                      보냅니다. (안 되면 그룹 → 봇 → 관리자로 지정)
+                    </li>
+                    <li>
+                      그룹 ID를 확인합니다. (보통 <b>-100</b>으로 시작하는 숫자)
+                      <br />
+                      <span className="text-[var(--muted)]">
+                        방법: 그룹에 아무 말 → 브라우저에서
+                        <code className="mx-1 break-all rounded bg-[#eef2f7] px-1 text-[0.7rem]">
+                          api.telegram.org/bot토큰/getUpdates
+                        </code>
+                        열어 <code className="rounded bg-[#eef2f7] px-1 text-[0.7rem]">chat.id</code> 확인
+                      </span>
+                    </li>
+                    <li>
+                      Vercel → cloudshelter → Environment Variables에서
+                      <br />
+                      <code className="rounded bg-[#fff0eb] px-1.5 py-0.5 text-xs font-bold">
+                        TELEGRAM_CHAT_ID
+                      </code>
+                      를 <b>그룹 ID</b>로 바꾸거나,
+                      <br />
+                      개인+운영자 각각이면{" "}
+                      <code className="rounded bg-[#fff0eb] px-1.5 py-0.5 text-xs">
+                        8433555162,운영자ID
+                      </code>{" "}
+                      처럼 쉼표로 넣습니다.
+                    </li>
+                    <li>
+                      저장 후 <b>Redeploy</b> → 아래 「테스트 알림」으로 단톡/운영자 폰 확인
+                    </li>
+                  </ol>
+                  <p className="mt-3 rounded-lg bg-[#e8f1ff] px-3 py-2 text-xs text-[var(--sky-deep)]">
+                    팁: 개인 채팅(본인만)은 본인만 받습니다. 운영자와 같이 받으려면 반드시
+                    <b> 그룹 단톡</b> 또는 <b>ID 여러 개(쉼표)</b>가 필요합니다.
+                  </p>
+                </div>
+
                 <div className="mt-3 flex flex-wrap gap-2 text-xs">
                   <span className="rounded-full bg-white px-3 py-1 font-semibold text-[var(--navy)] ring-1 ring-[var(--line)]">
                     내 ID: 8433555162
                   </span>
                   <span className="rounded-full bg-white px-3 py-1 font-semibold text-[var(--navy)] ring-1 ring-[var(--line)]">
                     봇: @{telegramStatus?.botUsername || "cloudshelter_79_bot"}
+                  </span>
+                  <span className="rounded-full bg-white px-3 py-1 font-semibold text-[var(--navy)] ring-1 ring-[var(--line)]">
+                    수신 {telegramStatus?.recipientCount ?? 1}곳
                   </span>
                   <span
                     className={`rounded-full px-3 py-1 font-bold ${
@@ -435,11 +488,13 @@ export default function AdminClient() {
                   type="button"
                   onClick={() => {
                     void navigator.clipboard.writeText("8433555162");
-                    setTelegramMsg("Chat ID 8433555162 를 복사했습니다. Vercel TELEGRAM_CHAT_ID에 붙여넣으세요.");
+                    setTelegramMsg(
+                      "내 Chat ID 8433555162 복사됨. 운영자와 같이 받을 때는 그룹 ID로 바꾸거나 쉼표로 운영자 ID를 추가하세요."
+                    );
                   }}
                   className="rounded-full border border-dashed border-[var(--sky)] bg-white px-4 py-2.5 text-sm font-semibold text-[var(--sky-deep)]"
                 >
-                  Chat ID 복사
+                  내 Chat ID 복사
                 </button>
               </div>
             </div>

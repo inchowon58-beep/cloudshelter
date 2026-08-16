@@ -1,18 +1,27 @@
 import type { Order } from "./orders";
 import { SITE } from "./site";
 
+function parseChatIds(raw: string): string[] {
+  return raw
+    .split(/[,;\s]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
 export function telegramConfig() {
   const token = process.env.TELEGRAM_BOT_TOKEN?.trim() || "";
-  const chatId = process.env.TELEGRAM_CHAT_ID?.trim() || "";
+  const chatIdRaw = process.env.TELEGRAM_CHAT_ID?.trim() || "";
+  const chatIds = parseChatIds(chatIdRaw);
   const botUsername = (process.env.TELEGRAM_BOT_USERNAME?.trim() || "cloudshelter_79_bot").replace(
     /^@/,
     ""
   );
   return {
     token,
-    chatId,
+    chatId: chatIds[0] || "",
+    chatIds,
     botUsername,
-    enabled: Boolean(token && chatId),
+    enabled: Boolean(token && chatIds.length),
     botUrl: `https://t.me/${botUsername}`,
   };
 }
@@ -24,12 +33,11 @@ function escapeHtml(text: string): string {
     .replace(/>/g, "&gt;");
 }
 
-async function sendTelegramHtml(text: string): Promise<{ ok: boolean; message: string }> {
-  const { token, chatId, enabled } = telegramConfig();
-  if (!enabled) {
-    return { ok: false, message: "TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID 미설정" };
-  }
-
+async function sendTelegramHtmlToChat(
+  token: string,
+  chatId: string,
+  text: string
+): Promise<{ ok: boolean; message: string }> {
   try {
     const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: "POST",
@@ -47,7 +55,7 @@ async function sendTelegramHtml(text: string): Promise<{ ok: boolean; message: s
     };
     if (!res.ok || !data.ok) {
       const msg = data.description || `HTTP ${res.status}`;
-      console.error("[telegram] send failed:", msg);
+      console.error("[telegram] send failed:", chatId, msg);
       return { ok: false, message: msg };
     }
     return { ok: true, message: "텔레그램 전송 완료" };
@@ -56,6 +64,31 @@ async function sendTelegramHtml(text: string): Promise<{ ok: boolean; message: s
     console.error("[telegram] error:", msg);
     return { ok: false, message: msg };
   }
+}
+
+async function sendTelegramHtml(text: string): Promise<{ ok: boolean; message: string }> {
+  const { token, chatIds, enabled } = telegramConfig();
+  if (!enabled) {
+    return { ok: false, message: "TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID 미설정" };
+  }
+
+  const results = await Promise.all(
+    chatIds.map((id) => sendTelegramHtmlToChat(token, id, text))
+  );
+  const okCount = results.filter((r) => r.ok).length;
+  if (okCount === 0) {
+    return { ok: false, message: results[0]?.message || "전송 실패" };
+  }
+  if (okCount < results.length) {
+    return {
+      ok: true,
+      message: `일부 전송 완료 (${okCount}/${results.length})`,
+    };
+  }
+  return {
+    ok: true,
+    message: chatIds.length > 1 ? `${chatIds.length}명에게 전송 완료` : "텔레그램 전송 완료",
+  };
 }
 
 function formatInquiryMessage(order: Order): string {
@@ -110,15 +143,15 @@ export async function sendTelegramTestMessage(): Promise<{ ok: boolean; message:
 }
 
 export function getTelegramAdminStatus() {
-  const { enabled, chatId, botUsername, botUrl } = telegramConfig();
+  const { enabled, chatIds, botUsername, botUrl } = telegramConfig();
   return {
     enabled,
     botUsername,
     botUrl,
-    chatIdConfigured: Boolean(chatId),
-    /** 마스킹된 chat id — 앞뒤만 노출 */
-    chatIdHint: chatId
-      ? `${chatId.slice(0, 3)}…${chatId.slice(-3)}`
+    chatIdConfigured: chatIds.length > 0,
+    recipientCount: chatIds.length,
+    chatIdHint: chatIds[0]
+      ? `${chatIds[0].slice(0, 3)}…${chatIds[0].slice(-3)}`
       : null,
     ownerChatIdHint: "8433555162",
   };
