@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { createHash, randomUUID } from "crypto";
-import { get, list, put } from "@vercel/blob";
+import { del, get, list, put } from "@vercel/blob";
 
 export type OrderStatus = "new" | "contacted" | "done" | "cancelled";
 
@@ -267,4 +267,34 @@ export async function updateOrderStatus(
   order.updatedAt = new Date().toISOString();
   await saveOrder(order);
   return order;
+}
+
+export async function deleteOrders(ids: string[]): Promise<number> {
+  const unique = [...new Set(ids.map((id) => id.trim()).filter(Boolean))];
+  if (!unique.length) return 0;
+
+  let deleted = 0;
+  for (const id of unique) {
+    const file = path.join(ORDERS_DIR, `${id}.json`);
+    try {
+      if (fs.existsSync(file)) fs.unlinkSync(file);
+    } catch {
+      /* ignore local FS */
+    }
+
+    if (resolveBlobToken() || isVercelRuntime()) {
+      try {
+        await del(blobOrderPath(id), blobTokenOpts());
+      } catch (e) {
+        console.error("[orders] blob delete failed", id, e);
+      }
+    }
+    deleted += 1;
+  }
+
+  const index = await readIndex();
+  const idSet = new Set(unique);
+  const nextIds = index.ids.filter((id) => !idSet.has(id));
+  await writeIndex({ ids: nextIds, updatedAt: new Date().toISOString() });
+  return deleted;
 }

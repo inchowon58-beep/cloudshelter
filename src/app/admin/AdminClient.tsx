@@ -54,6 +54,8 @@ export default function AdminClient() {
   const [orderTotal, setOrderTotal] = useState(0);
   const [orderPage, setOrderPage] = useState(1);
   const [orderTotalPages, setOrderTotalPages] = useState(1);
+  const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
+  const [deletingOrders, setDeletingOrders] = useState(false);
 
   function absolutePageUrl(path: string) {
     const base = (process.env.NEXT_PUBLIC_SITE_URL || "https://cloudshelter.vercel.app").replace(
@@ -101,6 +103,7 @@ export default function AdminClient() {
     setOrderTotal(data.total || 0);
     setOrderPage(data.page || 1);
     setOrderTotalPages(data.totalPages || 1);
+    setSelectedOrderIds([]);
     setAuthed(true);
   }, []);
 
@@ -182,6 +185,41 @@ export default function AdminClient() {
     if (res.ok) await loadOrders(orderPage);
   }
 
+  function toggleOrderSelect(id: string) {
+    setSelectedOrderIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  }
+
+  function toggleSelectAllOrders() {
+    if (selectedOrderIds.length === orders.length) {
+      setSelectedOrderIds([]);
+      return;
+    }
+    setSelectedOrderIds(orders.map((o) => o.id));
+  }
+
+  async function deleteSelectedOrders() {
+    if (!selectedOrderIds.length) return;
+    if (!confirm(`선택한 문의 ${selectedOrderIds.length}건을 삭제할까요?`)) return;
+    setDeletingOrders(true);
+    try {
+      const res = await fetch("/api/admin/orders", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: selectedOrderIds }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(data.error || "삭제에 실패했습니다.");
+        return;
+      }
+      await loadOrders(orderPage);
+    } finally {
+      setDeletingOrders(false);
+    }
+  }
+
   if (checking) {
     return (
       <div className="flex min-h-screen items-center justify-center pt-24">
@@ -240,7 +278,7 @@ export default function AdminClient() {
           <p className="text-sm font-bold text-[var(--orange)]">Dashboard</p>
           <h1 className="text-4xl font-extrabold text-[var(--navy)]">관리자</h1>
           <p className="mt-2 text-[var(--muted)]">
-            주문 <strong className="text-[var(--ink)]">{orderTotal}</strong>건 · SEO 글{" "}
+            문의 <strong className="text-[var(--ink)]">{orderTotal}</strong>건 · SEO 글{" "}
             <strong className="text-[var(--ink)]">{total}</strong>건
           </p>
         </div>
@@ -257,7 +295,7 @@ export default function AdminClient() {
             tab === "orders" ? "bg-[var(--orange)] text-white" : "bg-white border border-[var(--line)]"
           }`}
         >
-          주문 신청
+          신청문의
         </button>
         <button
           type="button"
@@ -272,31 +310,72 @@ export default function AdminClient() {
 
       {tab === "orders" && (
         <div className="mt-8">
-          <h2 className="text-2xl font-extrabold text-[var(--navy)]">간편 주문 신청 목록</h2>
-          <p className="mt-1 text-sm text-[var(--muted)]">사이트에서 접수된 주문을 확인·처리합니다.</p>
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 className="text-2xl font-extrabold text-[var(--navy)]">구름이네 문의목록</h2>
+              <p className="mt-1 text-sm text-[var(--muted)]">
+                사이트에서 접수된 상담 문의를 확인·처리합니다.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={toggleSelectAllOrders}
+                disabled={orders.length === 0}
+                className="rounded-full border border-[var(--line)] bg-white px-3 py-2 text-xs font-semibold text-[var(--navy)] disabled:opacity-40"
+              >
+                {selectedOrderIds.length === orders.length && orders.length > 0
+                  ? "선택 해제"
+                  : "전체 선택"}
+              </button>
+              <button
+                type="button"
+                onClick={deleteSelectedOrders}
+                disabled={!selectedOrderIds.length || deletingOrders}
+                className="rounded-full bg-[#dc2626] px-3 py-2 text-xs font-bold text-white disabled:opacity-40"
+              >
+                {deletingOrders ? "삭제 중…" : `선택 삭제 (${selectedOrderIds.length})`}
+              </button>
+            </div>
+          </div>
           <ul className="mt-4 divide-y divide-[var(--line)] overflow-hidden rounded-2xl border border-[var(--line)] bg-white">
             {orders.length === 0 && (
-              <li className="px-4 py-6 text-sm text-[var(--muted)]">아직 접수된 주문이 없습니다.</li>
+              <li className="px-4 py-6 text-sm text-[var(--muted)]">아직 접수된 문의가 없습니다.</li>
             )}
             {orders.map((o) => (
               <li key={o.id} className="px-4 py-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-lg bg-[var(--orange-soft)] px-2 py-0.5 text-xs font-bold text-[var(--orange)]">
-                        {STATUS_LABEL[o.status] || o.status}
-                      </span>
-                      <strong className="text-[var(--navy)]">{o.name}</strong>
-                      <a href={`tel:${o.phone.replace(/-/g, "")}`} className="text-sm font-semibold text-[var(--green)]">
-                        {o.phone}
-                      </a>
+                  <div className="flex min-w-0 flex-1 gap-3">
+                    <input
+                      type="checkbox"
+                      className="mt-1 h-4 w-4 shrink-0 accent-[var(--coral)]"
+                      checked={selectedOrderIds.includes(o.id)}
+                      onChange={() => toggleOrderSelect(o.id)}
+                      aria-label={`${o.name} 문의 선택`}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="rounded-lg bg-[var(--orange-soft)] px-2 py-0.5 text-xs font-bold text-[var(--orange)]">
+                          {STATUS_LABEL[o.status] || o.status}
+                        </span>
+                        <strong className="text-[var(--navy)]">{o.name}</strong>
+                        <a
+                          href={`tel:${o.phone.replace(/-/g, "")}`}
+                          className="text-sm font-semibold text-[var(--green)]"
+                        >
+                          {o.phone}
+                        </a>
+                      </div>
+                      <p className="mt-1 text-sm text-[var(--ink)]">
+                        {o.productLabel}
+                        {o.quantity && o.quantity !== "1" ? ` · ${o.quantity}` : ""}
+                      </p>
+                      {o.address && o.address !== "미입력" && (
+                        <p className="mt-1 text-sm text-[var(--muted)]">{o.address}</p>
+                      )}
+                      {o.memo && <p className="mt-1 text-sm text-[var(--muted)]">메모: {o.memo}</p>}
+                      <p className="mt-1 text-xs text-[var(--muted)]">{o.createdAt}</p>
                     </div>
-                    <p className="mt-1 text-sm text-[var(--ink)]">
-                      {o.productLabel} × {o.quantity}박스
-                    </p>
-                    <p className="mt-1 text-sm text-[var(--muted)]">{o.address}</p>
-                    {o.memo && <p className="mt-1 text-sm text-[var(--muted)]">메모: {o.memo}</p>}
-                    <p className="mt-1 text-xs text-[var(--muted)]">{o.createdAt}</p>
                   </div>
                   <select
                     className="rounded-lg border border-[var(--line)] px-2 py-1.5 text-sm"

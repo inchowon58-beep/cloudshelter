@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createOrder } from "@/lib/orders";
+import { notifyInquiryTelegram } from "@/lib/telegram";
 
 export async function POST(req: Request) {
   try {
@@ -27,6 +28,9 @@ export async function POST(req: Request) {
       quantity,
       memo,
     });
+
+    // 문의 저장은 성공한 뒤 — 텔레그램 실패해도 접수는 유지
+    void notifyInquiryTelegram(order);
 
     return NextResponse.json({ ok: true, id: order.id });
   } catch (e) {

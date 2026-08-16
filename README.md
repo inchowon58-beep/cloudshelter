@@ -22,3 +22,13 @@ npm run dev
 ```
 https://github.com/inchowon58-beep/cloudshelter.git
 ```
+
+## 텔레그램 문의 알림
+
+문의가 오면 텔레그램으로 즉시 푸시됩니다.  
+설정 방법(초간단): [`docs/telegram-setup.md`](docs/telegram-setup.md)
+
+환경 변수:
+
+- `TELEGRAM_BOT_TOKEN`
+- `TELEGRAM_CHAT_ID`

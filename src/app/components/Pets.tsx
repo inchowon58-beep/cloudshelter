@@ -22,7 +22,7 @@ export default function Pets() {
           </a>
         </div>
 
-        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-10 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
           {ADOPTION_GALLERY.map((pet) => (
             <article key={pet.name} className="soft-card group">
               <div className="relative aspect-[4/5] overflow-hidden">
@@ -32,18 +32,18 @@ export default function Pets() {
                   fill
                   unoptimized
                   className="object-cover transition duration-700 group-hover:scale-105"
-                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                  sizes="(max-width: 1024px) 50vw, 25vw"
                 />
-                <span className="absolute left-3 top-3 rounded-full bg-white/95 px-3 py-1 text-xs font-bold text-[var(--sky-deep)]">
+                <span className="absolute left-2 top-2 rounded-full bg-white/95 px-2 py-0.5 text-[0.65rem] font-bold text-[var(--sky-deep)] sm:left-3 sm:top-3 sm:px-3 sm:py-1 sm:text-xs">
                   {pet.status}
                 </span>
               </div>
-              <div className="p-4">
-                <h3 className="text-lg font-extrabold text-[var(--navy)]">{pet.name}</h3>
-                <p className="mt-0.5 text-sm text-[var(--muted)]">
+              <div className="p-3 sm:p-4">
+                <h3 className="text-base font-extrabold text-[var(--navy)] sm:text-lg">{pet.name}</h3>
+                <p className="mt-0.5 text-xs text-[var(--muted)] sm:text-sm">
                   {pet.breed} · {pet.age} · {pet.sex}
                 </p>
-                <ul className="mt-3 space-y-1">
+                <ul className="mt-2 hidden space-y-1 sm:mt-3 sm:block">
                   {pet.traits.slice(0, 2).map((t) => (
                     <li key={t} className="text-xs text-[var(--muted)]">
                       · {t}
