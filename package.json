@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "check:deploy-target": "node scripts/ensure-cloudshelter.cjs",
+    "deploy:prod": "node scripts/ensure-cloudshelter.cjs && vercel --prod --yes"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
