@@ -27,11 +27,33 @@ type OrderItem = {
 };
 
 const STATUS_LABEL: Record<string, string> = {
-  new: "신규",
+  new: "답변대기",
   contacted: "연락완료",
-  done: "처리완료",
+  done: "답변완료",
   cancelled: "취소",
 };
+
+const STATUS_STYLE: Record<string, string> = {
+  new: "bg-[#fff0eb] text-[#e85d3d] ring-1 ring-[#ffd4c8]",
+  contacted: "bg-[#e8f1ff] text-[#3d6fd4] ring-1 ring-[#c9dbff]",
+  done: "bg-[#eaf7f1] text-[#1f7a4d] ring-1 ring-[#c6ead7]",
+  cancelled: "bg-[#f3f4f6] text-[#6b7280] ring-1 ring-[#e5e7eb]",
+};
+
+function formatInquiryTime(iso: string) {
+  try {
+    return new Date(iso).toLocaleString("ko-KR", {
+      timeZone: "Asia/Seoul",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return iso;
+  }
+}
 
 export default function AdminClient() {
   const [authed, setAuthed] = useState(false);
@@ -310,87 +332,138 @@ export default function AdminClient() {
 
       {tab === "orders" && (
         <div className="mt-8">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <h2 className="text-2xl font-extrabold text-[var(--navy)]">구름이네 문의목록</h2>
-              <p className="mt-1 text-sm text-[var(--muted)]">
-                사이트에서 접수된 상담 문의를 확인·처리합니다.
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={toggleSelectAllOrders}
-                disabled={orders.length === 0}
-                className="rounded-full border border-[var(--line)] bg-white px-3 py-2 text-xs font-semibold text-[var(--navy)] disabled:opacity-40"
-              >
-                {selectedOrderIds.length === orders.length && orders.length > 0
-                  ? "선택 해제"
-                  : "전체 선택"}
-              </button>
-              <button
-                type="button"
-                onClick={deleteSelectedOrders}
-                disabled={!selectedOrderIds.length || deletingOrders}
-                className="rounded-full bg-[#dc2626] px-3 py-2 text-xs font-bold text-white disabled:opacity-40"
-              >
-                {deletingOrders ? "삭제 중…" : `선택 삭제 (${selectedOrderIds.length})`}
-              </button>
-            </div>
-          </div>
-          <ul className="mt-4 divide-y divide-[var(--line)] overflow-hidden rounded-2xl border border-[var(--line)] bg-white">
-            {orders.length === 0 && (
-              <li className="px-4 py-6 text-sm text-[var(--muted)]">아직 접수된 문의가 없습니다.</li>
-            )}
-            {orders.map((o) => (
-              <li key={o.id} className="px-4 py-4">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="flex min-w-0 flex-1 gap-3">
-                    <input
-                      type="checkbox"
-                      className="mt-1 h-4 w-4 shrink-0 accent-[var(--coral)]"
-                      checked={selectedOrderIds.includes(o.id)}
-                      onChange={() => toggleOrderSelect(o.id)}
-                      aria-label={`${o.name} 문의 선택`}
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="rounded-lg bg-[var(--orange-soft)] px-2 py-0.5 text-xs font-bold text-[var(--orange)]">
-                          {STATUS_LABEL[o.status] || o.status}
-                        </span>
-                        <strong className="text-[var(--navy)]">{o.name}</strong>
-                        <a
-                          href={`tel:${o.phone.replace(/-/g, "")}`}
-                          className="text-sm font-semibold text-[var(--green)]"
-                        >
-                          {o.phone}
-                        </a>
-                      </div>
-                      <p className="mt-1 text-sm text-[var(--ink)]">
-                        {o.productLabel}
-                        {o.quantity && o.quantity !== "1" ? ` · ${o.quantity}` : ""}
-                      </p>
-                      {o.address && o.address !== "미입력" && (
-                        <p className="mt-1 text-sm text-[var(--muted)]">{o.address}</p>
-                      )}
-                      {o.memo && <p className="mt-1 text-sm text-[var(--muted)]">메모: {o.memo}</p>}
-                      <p className="mt-1 text-xs text-[var(--muted)]">{o.createdAt}</p>
-                    </div>
-                  </div>
-                  <select
-                    className="rounded-lg border border-[var(--line)] px-2 py-1.5 text-sm"
-                    value={o.status}
-                    onChange={(e) => changeOrderStatus(o.id, e.target.value)}
-                  >
-                    <option value="new">신규</option>
-                    <option value="contacted">연락완료</option>
-                    <option value="done">처리완료</option>
-                    <option value="cancelled">취소</option>
-                  </select>
+          <div className="overflow-hidden rounded-[1.75rem] border border-[var(--line)] bg-gradient-to-br from-white via-white to-[#eef4ff] shadow-[0_18px_40px_rgba(28,36,52,0.06)]">
+            <div className="flex flex-wrap items-end justify-between gap-4 border-b border-[var(--line)] bg-white/80 px-5 py-5 md:px-7">
+              <div>
+                <p className="text-xs font-bold tracking-wide text-[var(--sky)]">INQUIRY BOARD</p>
+                <h2 className="mt-1 text-2xl font-extrabold text-[var(--navy)] md:text-3xl">
+                  구름이네 문의목록
+                </h2>
+                <p className="mt-1 text-sm text-[var(--muted)]">
+                  온라인 상담 신청을 확인하고 상태를 바꿔 관리하세요.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <span className="rounded-full bg-[#fff0eb] px-3 py-1 text-xs font-bold text-[#e85d3d]">
+                    답변대기 {orders.filter((o) => o.status === "new").length}
+                  </span>
+                  <span className="rounded-full bg-[#eaf7f1] px-3 py-1 text-xs font-bold text-[#1f7a4d]">
+                    답변완료 {orders.filter((o) => o.status === "done").length}
+                  </span>
+                  <span className="rounded-full bg-[#e8f1ff] px-3 py-1 text-xs font-bold text-[#3d6fd4]">
+                    전체 {orderTotal}
+                  </span>
                 </div>
-              </li>
-            ))}
-          </ul>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={toggleSelectAllOrders}
+                  disabled={orders.length === 0}
+                  className="rounded-full border border-[var(--line)] bg-white px-3.5 py-2 text-xs font-semibold text-[var(--navy)] shadow-sm transition hover:border-[var(--sky)] disabled:opacity-40"
+                >
+                  {selectedOrderIds.length === orders.length && orders.length > 0
+                    ? "선택 해제"
+                    : "전체 선택"}
+                </button>
+                <button
+                  type="button"
+                  onClick={deleteSelectedOrders}
+                  disabled={!selectedOrderIds.length || deletingOrders}
+                  className="rounded-full bg-[#dc2626] px-3.5 py-2 text-xs font-bold text-white shadow-sm transition hover:brightness-95 disabled:opacity-40"
+                >
+                  {deletingOrders ? "삭제 중…" : `선택 삭제 (${selectedOrderIds.length})`}
+                </button>
+              </div>
+            </div>
+
+            {orders.length === 0 ? (
+              <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[var(--sky-soft)] text-2xl">
+                  ✉️
+                </div>
+                <p className="mt-4 text-lg font-bold text-[var(--navy)]">아직 접수된 문의가 없습니다</p>
+                <p className="mt-2 max-w-sm text-sm text-[var(--muted)]">
+                  메인 페이지에서 상담 신청이 들어오면 여기에 카드로 표시됩니다.
+                </p>
+              </div>
+            ) : (
+              <ul className="grid gap-3 p-4 md:grid-cols-2 md:gap-4 md:p-6">
+                {orders.map((o) => {
+                  const selected = selectedOrderIds.includes(o.id);
+                  return (
+                    <li
+                      key={o.id}
+                      className={`rounded-2xl border bg-white p-4 shadow-[0_8px_24px_rgba(28,36,52,0.04)] transition ${
+                        selected
+                          ? "border-[var(--coral)] ring-2 ring-[rgba(255,122,89,0.18)]"
+                          : "border-[var(--line)] hover:border-[var(--sky)]"
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <input
+                          type="checkbox"
+                          className="mt-1 h-4 w-4 shrink-0 accent-[var(--coral)]"
+                          checked={selected}
+                          onChange={() => toggleOrderSelect(o.id)}
+                          aria-label={`${o.name} 문의 선택`}
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span
+                              className={`rounded-full px-2.5 py-0.5 text-[0.7rem] font-bold ${
+                                STATUS_STYLE[o.status] || STATUS_STYLE.new
+                              }`}
+                            >
+                              {STATUS_LABEL[o.status] || o.status}
+                            </span>
+                            <strong className="truncate text-base text-[var(--navy)]">{o.name}</strong>
+                          </div>
+
+                          <a
+                            href={`tel:${o.phone.replace(/-/g, "")}`}
+                            className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-[var(--sky-soft)] px-3 py-1.5 text-sm font-bold text-[var(--sky-deep)]"
+                          >
+                            📞 {o.phone}
+                          </a>
+
+                          <div className="mt-3 space-y-1.5 text-sm">
+                            <p className="font-semibold text-[var(--ink)]">
+                              {o.productLabel}
+                              {o.quantity && o.quantity !== "1" ? ` · ${o.quantity}` : ""}
+                            </p>
+                            {o.address && o.address !== "미입력" && (
+                              <p className="text-[var(--muted)]">📍 {o.address}</p>
+                            )}
+                            {o.memo && (
+                              <p className="rounded-xl bg-[#f8fafc] px-3 py-2 text-[var(--muted)]">
+                                {o.memo}
+                              </p>
+                            )}
+                            <p className="text-xs text-[var(--muted)]">{formatInquiryTime(o.createdAt)}</p>
+                          </div>
+
+                          <div className="mt-3 flex items-center gap-2">
+                            <label className="text-xs font-semibold text-[var(--muted)]">상태</label>
+                            <select
+                              className="flex-1 rounded-xl border border-[var(--line)] bg-[#fbfcfe] px-2.5 py-2 text-sm"
+                              value={o.status}
+                              onChange={(e) => changeOrderStatus(o.id, e.target.value)}
+                            >
+                              <option value="new">답변대기</option>
+                              <option value="contacted">연락완료</option>
+                              <option value="done">답변완료</option>
+                              <option value="cancelled">취소</option>
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+
           <div className="mt-4 flex flex-wrap justify-center gap-2">
             {Array.from({ length: Math.max(1, orderTotalPages) }, (_, i) => i + 1).map((n) => (
               <button
@@ -399,7 +472,7 @@ export default function AdminClient() {
                 onClick={() => loadOrders(n)}
                 className={`min-w-9 rounded-full px-2 py-1 text-sm ${
                   n === orderPage
-                    ? "bg-[var(--green)] text-white"
+                    ? "bg-[var(--sky)] text-white"
                     : "rounded-xl border border-[var(--line)] bg-white"
                 }`}
               >
